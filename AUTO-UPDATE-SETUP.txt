@@ -1,0 +1,7 @@
+AUTO UPDATE SETUP
+Upload app-update.js and app-version.php to /mobile/.
+Keep the APK at /mobile/app/JapnishPaints.apk.
+For every new release, increase 'version' in app-version.php and replace the APK.
+Android normally asks the user to confirm APK installation; silent installation is not available to a normal app.
+For in-place updates, every APK in this update line must use the same permanent signing key.
+Never publish the private signing key in a public GitHub repository.
