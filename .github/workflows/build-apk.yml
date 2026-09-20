@@ -25,8 +25,8 @@ jobs:
       - name: Verify app icon
         shell: bash
         run: |
-          test -s "JapnishPaints_adaptive_icon_foreground.png" || {
-            echo "ERROR: JapnishPaints_adaptive_icon_foreground.png is missing from the repository."
+          test -s "JapnishPaints_FINAL_launcher_icon.png" || {
+            echo "ERROR: JapnishPaints_FINAL_launcher_icon.png is missing from the repository."
             exit 1
           }
 
@@ -67,7 +67,7 @@ jobs:
           # JAPNISH PAINTS LOGO
           # ------------------------------------------------
 
-          cp "JapnishPaints_adaptive_icon_foreground.png" \
+          cp "JapnishPaints_FINAL_launcher_icon.png" \
              android/app/src/main/res/drawable-nodpi/japnish_logo.png
 
 
@@ -75,34 +75,34 @@ jobs:
           # LEGACY LAUNCHER ICONS
           # ------------------------------------------------
 
-          cp "JapnishPaints_adaptive_icon_foreground.png" \
+          cp "JapnishPaints_FINAL_launcher_icon.png" \
              android/app/src/main/res/mipmap-mdpi/ic_launcher.png
 
-          cp "JapnishPaints_adaptive_icon_foreground.png" \
+          cp "JapnishPaints_FINAL_launcher_icon.png" \
              android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png
 
-          cp "JapnishPaints_adaptive_icon_foreground.png" \
+          cp "JapnishPaints_FINAL_launcher_icon.png" \
              android/app/src/main/res/mipmap-hdpi/ic_launcher.png
 
-          cp "JapnishPaints_adaptive_icon_foreground.png" \
+          cp "JapnishPaints_FINAL_launcher_icon.png" \
              android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png
 
-          cp "JapnishPaints_adaptive_icon_foreground.png" \
+          cp "JapnishPaints_FINAL_launcher_icon.png" \
              android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
 
-          cp "JapnishPaints_adaptive_icon_foreground.png" \
+          cp "JapnishPaints_FINAL_launcher_icon.png" \
              android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png
 
-          cp "JapnishPaints_adaptive_icon_foreground.png" \
+          cp "JapnishPaints_FINAL_launcher_icon.png" \
              android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
 
-          cp "JapnishPaints_adaptive_icon_foreground.png" \
+          cp "JapnishPaints_FINAL_launcher_icon.png" \
              android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png
 
-          cp "JapnishPaints_adaptive_icon_foreground.png" \
+          cp "JapnishPaints_FINAL_launcher_icon.png" \
              android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
 
-          cp "JapnishPaints_adaptive_icon_foreground.png" \
+          cp "JapnishPaints_FINAL_launcher_icon.png" \
              android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png
 
 
