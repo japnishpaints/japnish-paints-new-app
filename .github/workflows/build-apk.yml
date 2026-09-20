@@ -7,6 +7,15 @@ on:
       - main
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # ================================================
+      # CHECKOUT
+      # ================================================
+      - name: Checkout
         uses: actions/checkout@v4
 
 
