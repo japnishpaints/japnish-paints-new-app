@@ -47,6 +47,7 @@ jobs:
 
           rootProject.name = "JapnishPaints"
           include(":app")
+          project(":app").projectDir = file("android/app")
           EOF
 
           cat > build.gradle <<'EOF'
