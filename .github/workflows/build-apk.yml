@@ -197,15 +197,11 @@ jobs:
           }
 
           allprojects {
-
               configurations.configureEach {
-
                   resolutionStrategy {
-
                       force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22'
                       force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22'
                       force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22'
-
                   }
               }
           }
@@ -222,62 +218,42 @@ jobs:
           }
 
           android {
-
               namespace 'com.japnishpaints.app'
 
               compileSdk 35
 
               defaultConfig {
-
                   applicationId 'com.japnishpaints.app'
-
                   minSdk 23
-
                   targetSdk 35
 
                   versionCode 70
-
                   versionName '70.0.0'
               }
 
-
               signingConfigs {
-
                   release {
-
-                      storeFile file("${project.rootDir}/japnishpaints-release-v2.jks")
-
+                      storeFile file("${System.getenv("GITHUB_WORKSPACE")}/japnishpaints-release-v2.jks")
                       storePassword System.getenv("JP_KEYSTORE_PASSWORD")
-
                       keyAlias System.getenv("JP_KEY_ALIAS")
-
                       keyPassword System.getenv("JP_KEY_PASSWORD")
                   }
               }
 
-
               buildTypes {
-
                   debug {
-
                       minifyEnabled false
                   }
 
-
                   release {
-
                       minifyEnabled false
-
                       signingConfig signingConfigs.release
                   }
               }
           }
 
-
           dependencies {
-
               implementation 'androidx.appcompat:appcompat:1.7.0'
-
               implementation 'androidx.webkit:webkit:1.12.1'
           }
           EOF
@@ -285,7 +261,7 @@ jobs:
 
           # ------------------------------------------------
           # ANDROID MANIFEST
-          # CAMERA PERMISSION INCLUDED
+          # CAMERA PERMISSION
           # ------------------------------------------------
 
           cat > android/app/src/main/AndroidManifest.xml <<'EOF'
@@ -297,33 +273,20 @@ jobs:
               <uses-permission
                   android:name="android.permission.CAMERA" />
 
-
               <application
-
                   android:theme="@style/AppTheme"
-
                   android:label="Japnish Paints"
-
                   android:icon="@mipmap/ic_launcher"
-
                   android:roundIcon="@mipmap/ic_launcher_round"
-
                   android:usesCleartextTraffic="false">
 
                   <activity
-
                       android:name=".MainActivity"
-
                       android:exported="true">
 
                       <intent-filter>
-
-                          <action
-                              android:name="android.intent.action.MAIN" />
-
-                          <category
-                              android:name="android.intent.category.LAUNCHER" />
-
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
                       </intent-filter>
 
                   </activity>
@@ -346,9 +309,7 @@ jobs:
                   parent="android:style/Theme.Material.Light.NoActionBar">
 
                   <item name="android:fontFamily">sans</item>
-
                   <item name="android:colorAccent">#1677FF</item>
-
                   <item name="android:windowActionModeOverlay">true</item>
 
               </style>
@@ -393,30 +354,20 @@ jobs:
 
                   super.onCreate(savedInstanceState);
 
-
                   webView = new WebView(this);
 
                   setContentView(webView);
 
-
                   WebSettings settings = webView.getSettings();
 
-
                   settings.setJavaScriptEnabled(true);
-
                   settings.setDomStorageEnabled(true);
-
                   settings.setDatabaseEnabled(true);
-
                   settings.setMediaPlaybackRequiresUserGesture(false);
-
                   settings.setBuiltInZoomControls(false);
-
                   settings.setDisplayZoomControls(false);
 
-
                   webView.setWebViewClient(new WebViewClient());
-
 
                   webView.setWebChromeClient(new WebChromeClient() {
 
@@ -429,7 +380,6 @@ jobs:
                               if (request == null) {
                                   return;
                               }
-
 
                               if (checkSelfPermission(
                                       Manifest.permission.CAMERA)
@@ -447,14 +397,11 @@ jobs:
 
                                   requestCameraPermission();
                               }
-
                           });
                       }
                   });
 
-
                   requestCameraPermission();
-
 
                   webView.loadUrl(
                       "https://japnishpaints.store/mobile/index.html"
@@ -469,11 +416,9 @@ jobs:
                           != PackageManager.PERMISSION_GRANTED) {
 
                       requestPermissions(
-
                           new String[]{
                               Manifest.permission.CAMERA
                           },
-
                           CAMERA_PERMISSION_REQUEST
                       );
                   }
@@ -482,11 +427,8 @@ jobs:
 
               @Override
               public void onRequestPermissionsResult(
-
                       int requestCode,
-
                       String[] permissions,
-
                       int[] grantResults) {
 
                   super.onRequestPermissionsResult(
@@ -495,24 +437,17 @@ jobs:
                       grantResults
                   );
 
-
-                  if (requestCode ==
-                          CAMERA_PERMISSION_REQUEST) {
-
+                  if (requestCode == CAMERA_PERMISSION_REQUEST) {
 
                       if (grantResults.length > 0
-
                               && grantResults[0]
                               == PackageManager.PERMISSION_GRANTED) {
-
 
                           if (pendingPermissionRequest != null) {
 
                               pendingPermissionRequest.grant(
-
                                   new String[]{
-                                      PermissionRequest
-                                          .RESOURCE_VIDEO_CAPTURE
+                                      PermissionRequest.RESOURCE_VIDEO_CAPTURE
                                   }
                               );
 
@@ -522,7 +457,6 @@ jobs:
 
                               webView.reload();
                           }
-
 
                       } else {
 
@@ -556,42 +490,39 @@ jobs:
       - name: Restore signing keystore
         shell: bash
         env:
-
           JP_KEYSTORE_B64: ${{ secrets.JP_KEYSTORE_B64 }}
-
           JP_KEYSTORE_PASSWORD: ${{ secrets.JP_KEYSTORE_PASSWORD }}
-
         run: |
+
+          KEYSTORE_PATH="$GITHUB_WORKSPACE/japnishpaints-release-v2.jks"
 
           printf '%s' "$JP_KEYSTORE_B64" \
             | tr -d '[:space:]' \
             | base64 --decode --ignore-garbage \
-            > japnishpaints-release-v2.jks
+            > "$KEYSTORE_PATH"
 
-
-          test -s japnishpaints-release-v2.jks
-
+          test -s "$KEYSTORE_PATH"
 
           keytool -list \
-
-            -keystore japnishpaints-release-v2.jks \
-
+            -keystore "$KEYSTORE_PATH" \
             -storepass "$JP_KEYSTORE_PASSWORD" \
-
-            -alias japnishnew \
+            -alias "japnishnew" \
             > /dev/null
-
 
           echo "Keystore restored and validated successfully."
 
 
       # --------------------------------------------------
-      # GRADLE
+      # SETUP GRADLE
       # --------------------------------------------------
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
+
+      # --------------------------------------------------
+      # GENERATE GRADLE WRAPPER
+      # --------------------------------------------------
 
       - name: Generate Gradle wrapper
         run: |
@@ -604,30 +535,23 @@ jobs:
 
 
       # --------------------------------------------------
-      # BUILD SIGNED APK
+      # BUILD SIGNED RELEASE APK
       # --------------------------------------------------
 
       - name: Build signed Release APK
         env:
-
           JP_KEYSTORE_PASSWORD: ${{ secrets.JP_KEYSTORE_PASSWORD }}
-
           JP_KEY_ALIAS: ${{ secrets.JP_KEY_ALIAS }}
-
           JP_KEY_PASSWORD: ${{ secrets.JP_KEY_PASSWORD }}
-
         run: ./gradlew assembleRelease
 
 
       # --------------------------------------------------
-      # UPLOAD APK
+      # UPLOAD SIGNED APK
       # --------------------------------------------------
 
       - name: Upload signed APK
         uses: actions/upload-artifact@v4
-
         with:
-
           name: JapnishPaints-release-v70
-
           path: android/app/build/outputs/apk/release/app-release.apk
