@@ -25,10 +25,11 @@ jobs:
       - name: Verify app icon
         shell: bash
         run: |
-          test -s "JapnishPaints_FINAL_launcher_icon.png" || {
-            echo "ERROR: JapnishPaints_FINAL_launcher_icon.png is missing from the repository."
+          test -s "JapnishPaints_NO_CROP_icon.png" || {
+            echo "ERROR: JapnishPaints_NO_CROP_icon.png is missing from the repository."
             exit 1
           }
+
 
       # --------------------------------------------------
       # JAVA
@@ -58,8 +59,6 @@ jobs:
           mkdir -p android/app/src/main/res/mipmap-xxhdpi
           mkdir -p android/app/src/main/res/mipmap-xxxhdpi
 
-          mkdir -p android/app/src/main/res/mipmap-anydpi-v26
-
           mkdir -p android/app/src/main/res/values
 
 
@@ -67,7 +66,7 @@ jobs:
           # JAPNISH PAINTS LOGO
           # ------------------------------------------------
 
-          cp "JapnishPaints_FINAL_launcher_icon.png" \
+          cp "JapnishPaints_NO_CROP_icon.png" \
              android/app/src/main/res/drawable-nodpi/japnish_logo.png
 
 
@@ -75,86 +74,35 @@ jobs:
           # LEGACY LAUNCHER ICONS
           # ------------------------------------------------
 
-          cp "JapnishPaints_FINAL_launcher_icon.png" \
+          cp "JapnishPaints_NO_CROP_icon.png" \
              android/app/src/main/res/mipmap-mdpi/ic_launcher.png
 
-          cp "JapnishPaints_FINAL_launcher_icon.png" \
+          cp "JapnishPaints_NO_CROP_icon.png" \
              android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png
 
-          cp "JapnishPaints_FINAL_launcher_icon.png" \
+          cp "JapnishPaints_NO_CROP_icon.png" \
              android/app/src/main/res/mipmap-hdpi/ic_launcher.png
 
-          cp "JapnishPaints_FINAL_launcher_icon.png" \
+          cp "JapnishPaints_NO_CROP_icon.png" \
              android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png
 
-          cp "JapnishPaints_FINAL_launcher_icon.png" \
+          cp "JapnishPaints_NO_CROP_icon.png" \
              android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
 
-          cp "JapnishPaints_FINAL_launcher_icon.png" \
+          cp "JapnishPaints_NO_CROP_icon.png" \
              android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png
 
-          cp "JapnishPaints_FINAL_launcher_icon.png" \
+          cp "JapnishPaints_NO_CROP_icon.png" \
              android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
 
-          cp "JapnishPaints_FINAL_launcher_icon.png" \
+          cp "JapnishPaints_NO_CROP_icon.png" \
              android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png
 
-          cp "JapnishPaints_FINAL_launcher_icon.png" \
+          cp "JapnishPaints_NO_CROP_icon.png" \
              android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
 
-          cp "JapnishPaints_FINAL_launcher_icon.png" \
+          cp "JapnishPaints_NO_CROP_icon.png" \
              android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png
-
-
-          # ------------------------------------------------
-          # ADAPTIVE ICON
-          # ------------------------------------------------
-
-          cat > android/app/src/main/res/values/colors.xml <<'EOF'
-          <resources>
-              <color name="icon_background">#FFFFFF</color>
-          </resources>
-          EOF
-
-
-          cat > android/app/src/main/res/drawable/ic_launcher_foreground.xml <<'EOF'
-          <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-
-              <item
-                  android:gravity="center"
-                  android:width="108dp"
-                  android:height="108dp">
-
-                  <bitmap
-                      android:src="@drawable/japnish_logo"
-                      android:gravity="center" />
-
-              </item>
-
-          </layer-list>
-          EOF
-
-
-          cat > android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml <<'EOF'
-          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-
-              <background android:drawable="@color/icon_background" />
-
-              <foreground android:drawable="@drawable/ic_launcher_foreground" />
-
-          </adaptive-icon>
-          EOF
-
-
-          cat > android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml <<'EOF'
-          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-
-              <background android:drawable="@color/icon_background" />
-
-              <foreground android:drawable="@drawable/ic_launcher_foreground" />
-
-          </adaptive-icon>
-          EOF
 
 
           # ------------------------------------------------
