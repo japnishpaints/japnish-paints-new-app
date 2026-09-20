@@ -127,7 +127,6 @@ jobs:
 
           cat > android/app/src/main/res/values/styles.xml <<'EOF'
           <resources>
-
               <style
                   name="AppTheme"
                   parent="android:style/Theme.Material.Light.NoActionBar">
@@ -137,7 +136,6 @@ jobs:
                   <item name="android:windowActionModeOverlay">true</item>
 
               </style>
-
           </resources>
           EOF
 
@@ -186,10 +184,18 @@ jobs:
         shell: bash
         env:
           JP_KEYSTORE_B64: ${{ secrets.JP_KEYSTORE_B64 }}
+          JP_KEYSTORE_PASSWORD: ${{ secrets.JP_KEYSTORE_PASSWORD }}
         run: |
-          printf '%s' "$JP_KEYSTORE_B64" | base64 --decode > japnishpaints-release-v2.jks
+          printf '%s' "$JP_KEYSTORE_B64" | tr -d '[:space:]' | base64 --decode --ignore-garbage > japnishpaints-release-v2.jks
 
           test -s japnishpaints-release-v2.jks
+
+          keytool -list \
+            -keystore japnishpaints-release-v2.jks \
+            -storepass "$JP_KEYSTORE_PASSWORD" \
+            -alias japnishnew > /dev/null
+
+          echo "Keystore restored and validated successfully."
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
