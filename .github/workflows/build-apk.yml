@@ -53,10 +53,10 @@ jobs:
 
 
           # ------------------------------------------------
-          # LOGO
+          # JAPNISH PAINTS LOGO
           # ------------------------------------------------
 
-          cp "ChatGPT Image Sep 20, 2026, 04_47_04 PM.png" \
+          cp "app_icon.png" \
              android/app/src/main/res/drawable-nodpi/japnish_logo.png
 
 
@@ -64,34 +64,34 @@ jobs:
           # LEGACY LAUNCHER ICONS
           # ------------------------------------------------
 
-          cp "ChatGPT Image Sep 20, 2026, 04_47_04 PM.png" \
+          cp "app_icon.png" \
              android/app/src/main/res/mipmap-mdpi/ic_launcher.png
 
-          cp "ChatGPT Image Sep 20, 2026, 04_47_04 PM.png" \
+          cp "app_icon.png" \
              android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png
 
-          cp "ChatGPT Image Sep 20, 2026, 04_47_04 PM.png" \
+          cp "app_icon.png" \
              android/app/src/main/res/mipmap-hdpi/ic_launcher.png
 
-          cp "ChatGPT Image Sep 20, 2026, 04_47_04 PM.png" \
+          cp "app_icon.png" \
              android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png
 
-          cp "ChatGPT Image Sep 20, 2026, 04_47_04 PM.png" \
+          cp "app_icon.png" \
              android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
 
-          cp "ChatGPT Image Sep 20, 2026, 04_47_04 PM.png" \
+          cp "app_icon.png" \
              android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png
 
-          cp "ChatGPT Image Sep 20, 2026, 04_47_04 PM.png" \
+          cp "app_icon.png" \
              android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
 
-          cp "ChatGPT Image Sep 20, 2026, 04_47_04 PM.png" \
+          cp "app_icon.png" \
              android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png
 
-          cp "ChatGPT Image Sep 20, 2026, 04_47_04 PM.png" \
+          cp "app_icon.png" \
              android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
 
-          cp "ChatGPT Image Sep 20, 2026, 04_47_04 PM.png" \
+          cp "app_icon.png" \
              android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png
 
 
@@ -262,6 +262,7 @@ jobs:
           # ------------------------------------------------
           # ANDROID MANIFEST
           # CAMERA PERMISSION
+          # APP ICON
           # ------------------------------------------------
 
           cat > android/app/src/main/AndroidManifest.xml <<'EOF'
@@ -401,7 +402,9 @@ jobs:
                       }
                   });
 
+
                   requestCameraPermission();
+
 
                   webView.loadUrl(
                       "https://japnishpaints.store/mobile/index.html"
@@ -436,6 +439,7 @@ jobs:
                       permissions,
                       grantResults
                   );
+
 
                   if (requestCode == CAMERA_PERMISSION_REQUEST) {
 
