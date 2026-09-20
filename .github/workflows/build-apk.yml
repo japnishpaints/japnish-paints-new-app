@@ -12,26 +12,57 @@ jobs:
 
     steps:
 
+      # --------------------------------------------------
+      # CHECKOUT
+      # --------------------------------------------------
       - name: Checkout
         uses: actions/checkout@v4
 
+
+      # --------------------------------------------------
+      # JAVA
+      # --------------------------------------------------
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
+
+      # --------------------------------------------------
+      # CREATE ANDROID PROJECT
+      # --------------------------------------------------
       - name: Create Android project
         shell: bash
         run: |
+
           mkdir -p android/app/src/main/java/com/japnishpaints/app
+
           mkdir -p android/app/src/main/res/drawable
+          mkdir -p android/app/src/main/res/drawable-nodpi
+
           mkdir -p android/app/src/main/res/mipmap-mdpi
           mkdir -p android/app/src/main/res/mipmap-hdpi
           mkdir -p android/app/src/main/res/mipmap-xhdpi
           mkdir -p android/app/src/main/res/mipmap-xxhdpi
           mkdir -p android/app/src/main/res/mipmap-xxxhdpi
+
+          mkdir -p android/app/src/main/res/mipmap-anydpi-v26
+
           mkdir -p android/app/src/main/res/values
+
+
+          # ------------------------------------------------
+          # LOGO
+          # ------------------------------------------------
+
+          cp "ChatGPT Image Sep 20, 2026, 04_47_04 PM.png" \
+             android/app/src/main/res/drawable-nodpi/japnish_logo.png
+
+
+          # ------------------------------------------------
+          # LEGACY LAUNCHER ICONS
+          # ------------------------------------------------
 
           cp "ChatGPT Image Sep 20, 2026, 04_47_04 PM.png" \
              android/app/src/main/res/mipmap-mdpi/ic_launcher.png
@@ -63,6 +94,62 @@ jobs:
           cp "ChatGPT Image Sep 20, 2026, 04_47_04 PM.png" \
              android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png
 
+
+          # ------------------------------------------------
+          # ADAPTIVE ICON
+          # ------------------------------------------------
+
+          cat > android/app/src/main/res/values/colors.xml <<'EOF'
+          <resources>
+              <color name="icon_background">#FFFFFF</color>
+          </resources>
+          EOF
+
+
+          cat > android/app/src/main/res/drawable/ic_launcher_foreground.xml <<'EOF'
+          <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+              <item
+                  android:gravity="center"
+                  android:width="108dp"
+                  android:height="108dp">
+
+                  <bitmap
+                      android:src="@drawable/japnish_logo"
+                      android:gravity="fill" />
+
+              </item>
+
+          </layer-list>
+          EOF
+
+
+          cat > android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml <<'EOF'
+          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+
+              <background android:drawable="@color/icon_background" />
+
+              <foreground android:drawable="@drawable/ic_launcher_foreground" />
+
+          </adaptive-icon>
+          EOF
+
+
+          cat > android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml <<'EOF'
+          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+
+              <background android:drawable="@color/icon_background" />
+
+              <foreground android:drawable="@drawable/ic_launcher_foreground" />
+
+          </adaptive-icon>
+          EOF
+
+
+          # ------------------------------------------------
+          # SETTINGS.GRADLE
+          # ------------------------------------------------
+
           cat > settings.gradle <<'EOF'
           pluginManagement {
               repositories {
@@ -74,6 +161,7 @@ jobs:
 
           dependencyResolutionManagement {
               repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+
               repositories {
                   google()
                   mavenCentral()
@@ -81,9 +169,16 @@ jobs:
           }
 
           rootProject.name = "JapnishPaints"
+
           include(":app")
+
           project(":app").projectDir = file("android/app")
           EOF
+
+
+          # ------------------------------------------------
+          # GRADLE PROPERTIES
+          # ------------------------------------------------
 
           cat > gradle.properties <<'EOF'
           android.useAndroidX=true
@@ -91,21 +186,35 @@ jobs:
           org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
           EOF
 
+
+          # ------------------------------------------------
+          # ROOT BUILD.GRADLE
+          # ------------------------------------------------
+
           cat > build.gradle <<'EOF'
           plugins {
               id 'com.android.application' version '8.7.3' apply false
           }
 
           allprojects {
+
               configurations.configureEach {
+
                   resolutionStrategy {
+
                       force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22'
                       force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22'
                       force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22'
+
                   }
               }
           }
           EOF
+
+
+          # ------------------------------------------------
+          # APP BUILD.GRADLE
+          # ------------------------------------------------
 
           cat > android/app/build.gradle <<'EOF'
           plugins {
@@ -113,63 +222,108 @@ jobs:
           }
 
           android {
+
               namespace 'com.japnishpaints.app'
+
               compileSdk 35
 
               defaultConfig {
+
                   applicationId 'com.japnishpaints.app'
+
                   minSdk 23
+
                   targetSdk 35
-                  versionCode 69
-                  versionName '69.0.0'
+
+                  versionCode 70
+
+                  versionName '70.0.0'
               }
 
+
               signingConfigs {
+
                   release {
+
                       storeFile file("${project.rootDir}/japnishpaints-release-v2.jks")
+
                       storePassword System.getenv("JP_KEYSTORE_PASSWORD")
+
                       keyAlias System.getenv("JP_KEY_ALIAS")
+
                       keyPassword System.getenv("JP_KEY_PASSWORD")
                   }
               }
 
+
               buildTypes {
+
                   debug {
+
                       minifyEnabled false
                   }
 
+
                   release {
+
                       minifyEnabled false
+
                       signingConfig signingConfigs.release
                   }
               }
           }
 
+
           dependencies {
+
               implementation 'androidx.appcompat:appcompat:1.7.0'
+
               implementation 'androidx.webkit:webkit:1.12.1'
           }
           EOF
 
+
+          # ------------------------------------------------
+          # ANDROID MANIFEST
+          # CAMERA PERMISSION INCLUDED
+          # ------------------------------------------------
+
           cat > android/app/src/main/AndroidManifest.xml <<'EOF'
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-              <uses-permission android:name="android.permission.INTERNET" />
+              <uses-permission
+                  android:name="android.permission.INTERNET" />
+
+              <uses-permission
+                  android:name="android.permission.CAMERA" />
+
 
               <application
+
                   android:theme="@style/AppTheme"
+
                   android:label="Japnish Paints"
+
                   android:icon="@mipmap/ic_launcher"
+
                   android:roundIcon="@mipmap/ic_launcher_round"
+
                   android:usesCleartextTraffic="false">
 
                   <activity
+
                       android:name=".MainActivity"
+
                       android:exported="true">
 
                       <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHER" />
+
+                          <action
+                              android:name="android.intent.action.MAIN" />
+
+                          <category
+                              android:name="android.intent.category.LAUNCHER" />
+
                       </intent-filter>
 
                   </activity>
@@ -179,6 +333,11 @@ jobs:
           </manifest>
           EOF
 
+
+          # ------------------------------------------------
+          # APP STYLE
+          # ------------------------------------------------
+
           cat > android/app/src/main/res/values/styles.xml <<'EOF'
           <resources>
 
@@ -187,7 +346,9 @@ jobs:
                   parent="android:style/Theme.Material.Light.NoActionBar">
 
                   <item name="android:fontFamily">sans</item>
+
                   <item name="android:colorAccent">#1677FF</item>
+
                   <item name="android:windowActionModeOverlay">true</item>
 
               </style>
@@ -195,81 +356,278 @@ jobs:
           </resources>
           EOF
 
+
+      # --------------------------------------------------
+      # MAIN ACTIVITY
+      # CAMERA + WEBVIEW
+      # --------------------------------------------------
+
       - name: Create MainActivity
         shell: bash
         run: |
+
           cat > android/app/src/main/java/com/japnishpaints/app/MainActivity.java <<'EOF'
           package com.japnishpaints.app;
 
+          import android.Manifest;
           import android.app.Activity;
+          import android.content.pm.PackageManager;
           import android.os.Bundle;
+          import android.webkit.PermissionRequest;
+          import android.webkit.WebChromeClient;
           import android.webkit.WebSettings;
           import android.webkit.WebView;
           import android.webkit.WebViewClient;
 
           public class MainActivity extends Activity {
 
+              private static final int CAMERA_PERMISSION_REQUEST = 1001;
+
               private WebView webView;
+
+              private PermissionRequest pendingPermissionRequest;
+
 
               @Override
               protected void onCreate(Bundle savedInstanceState) {
+
                   super.onCreate(savedInstanceState);
 
+
                   webView = new WebView(this);
+
                   setContentView(webView);
+
 
                   WebSettings settings = webView.getSettings();
 
+
                   settings.setJavaScriptEnabled(true);
+
                   settings.setDomStorageEnabled(true);
+
                   settings.setDatabaseEnabled(true);
+
                   settings.setMediaPlaybackRequiresUserGesture(false);
+
                   settings.setBuiltInZoomControls(false);
+
                   settings.setDisplayZoomControls(false);
 
+
                   webView.setWebViewClient(new WebViewClient());
+
+
+                  webView.setWebChromeClient(new WebChromeClient() {
+
+                      @Override
+                      public void onPermissionRequest(
+                              final PermissionRequest request) {
+
+                          runOnUiThread(() -> {
+
+                              if (request == null) {
+                                  return;
+                              }
+
+
+                              if (checkSelfPermission(
+                                      Manifest.permission.CAMERA)
+                                      == PackageManager.PERMISSION_GRANTED) {
+
+                                  request.grant(
+                                      new String[]{
+                                          PermissionRequest.RESOURCE_VIDEO_CAPTURE
+                                      }
+                                  );
+
+                              } else {
+
+                                  pendingPermissionRequest = request;
+
+                                  requestCameraPermission();
+                              }
+
+                          });
+                      }
+                  });
+
+
+                  requestCameraPermission();
+
 
                   webView.loadUrl(
                       "https://japnishpaints.store/mobile/index.html"
                   );
               }
+
+
+              private void requestCameraPermission() {
+
+                  if (checkSelfPermission(
+                          Manifest.permission.CAMERA)
+                          != PackageManager.PERMISSION_GRANTED) {
+
+                      requestPermissions(
+
+                          new String[]{
+                              Manifest.permission.CAMERA
+                          },
+
+                          CAMERA_PERMISSION_REQUEST
+                      );
+                  }
+              }
+
+
+              @Override
+              public void onRequestPermissionsResult(
+
+                      int requestCode,
+
+                      String[] permissions,
+
+                      int[] grantResults) {
+
+                  super.onRequestPermissionsResult(
+                      requestCode,
+                      permissions,
+                      grantResults
+                  );
+
+
+                  if (requestCode ==
+                          CAMERA_PERMISSION_REQUEST) {
+
+
+                      if (grantResults.length > 0
+
+                              && grantResults[0]
+                              == PackageManager.PERMISSION_GRANTED) {
+
+
+                          if (pendingPermissionRequest != null) {
+
+                              pendingPermissionRequest.grant(
+
+                                  new String[]{
+                                      PermissionRequest
+                                          .RESOURCE_VIDEO_CAPTURE
+                                  }
+                              );
+
+                              pendingPermissionRequest = null;
+
+                          } else {
+
+                              webView.reload();
+                          }
+
+
+                      } else {
+
+                          pendingPermissionRequest = null;
+                      }
+                  }
+              }
+
+
+              @Override
+              public void onBackPressed() {
+
+                  if (webView != null
+                          && webView.canGoBack()) {
+
+                      webView.goBack();
+
+                  } else {
+
+                      super.onBackPressed();
+                  }
+              }
           }
           EOF
+
+
+      # --------------------------------------------------
+      # RESTORE SIGNING KEY
+      # --------------------------------------------------
 
       - name: Restore signing keystore
         shell: bash
         env:
+
           JP_KEYSTORE_B64: ${{ secrets.JP_KEYSTORE_B64 }}
+
           JP_KEYSTORE_PASSWORD: ${{ secrets.JP_KEYSTORE_PASSWORD }}
+
         run: |
-          printf '%s' "$JP_KEYSTORE_B64" | tr -d '[:space:]' | base64 --decode --ignore-garbage > japnishpaints-release-v2.jks
+
+          printf '%s' "$JP_KEYSTORE_B64" \
+            | tr -d '[:space:]' \
+            | base64 --decode --ignore-garbage \
+            > japnishpaints-release-v2.jks
+
 
           test -s japnishpaints-release-v2.jks
 
+
           keytool -list \
+
             -keystore japnishpaints-release-v2.jks \
+
             -storepass "$JP_KEYSTORE_PASSWORD" \
-            -alias japnishnew > /dev/null
+
+            -alias japnishnew \
+            > /dev/null
+
 
           echo "Keystore restored and validated successfully."
+
+
+      # --------------------------------------------------
+      # GRADLE
+      # --------------------------------------------------
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
+
       - name: Generate Gradle wrapper
         run: |
+
           gradle --version
-          gradle wrapper --gradle-version 9.7.1 --distribution-type bin
+
+          gradle wrapper \
+            --gradle-version 9.7.1 \
+            --distribution-type bin
+
+
+      # --------------------------------------------------
+      # BUILD SIGNED APK
+      # --------------------------------------------------
 
       - name: Build signed Release APK
         env:
+
           JP_KEYSTORE_PASSWORD: ${{ secrets.JP_KEYSTORE_PASSWORD }}
+
           JP_KEY_ALIAS: ${{ secrets.JP_KEY_ALIAS }}
+
           JP_KEY_PASSWORD: ${{ secrets.JP_KEY_PASSWORD }}
+
         run: ./gradlew assembleRelease
+
+
+      # --------------------------------------------------
+      # UPLOAD APK
+      # --------------------------------------------------
 
       - name: Upload signed APK
         uses: actions/upload-artifact@v4
+
         with:
-          name: JapnishPaints-release-v69
+
+          name: JapnishPaints-release-v70
+
           path: android/app/build/outputs/apk/release/app-release.apk
