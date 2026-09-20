@@ -12,28 +12,30 @@ jobs:
 
     steps:
 
-      # --------------------------------------------------
+      # ================================================
       # CHECKOUT
-      # --------------------------------------------------
+      # ================================================
       - name: Checkout
         uses: actions/checkout@v4
 
 
-      # --------------------------------------------------
-      # VERIFY REQUIRED APP ICON
-      # --------------------------------------------------
-      - name: Verify app icon
+      # ================================================
+      # CHECK FINAL ICON
+      # ================================================
+      - name: Verify final app icon
         shell: bash
         run: |
-          test -s "JapnishPaints_NO_CROP_icon.png" || {
-            echo "ERROR: JapnishPaints_NO_CROP_icon.png is missing from the repository."
+          if [ ! -s "JapnishPaints_ICON_FINAL.png" ]; then
+            echo "ERROR: JapnishPaints_ICON_FINAL.png not found in repository root."
             exit 1
-          }
+          fi
+
+          echo "Final Japnish Paints icon found."
 
 
-      # --------------------------------------------------
-      # JAVA
-      # --------------------------------------------------
+      # ================================================
+      # JAVA 17
+      # ================================================
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
@@ -41,9 +43,9 @@ jobs:
           java-version: '17'
 
 
-      # --------------------------------------------------
-      # CREATE ANDROID PROJECT
-      # --------------------------------------------------
+      # ================================================
+      # CREATE ANDROID DIRECTORIES
+      # ================================================
       - name: Create Android project
         shell: bash
         run: |
@@ -62,52 +64,67 @@ jobs:
           mkdir -p android/app/src/main/res/values
 
 
-          # ------------------------------------------------
-          # JAPNISH PAINTS LOGO
-          # ------------------------------------------------
+      # ================================================
+      # INSTALL FINAL LOGO
+      # NO ADAPTIVE ICON
+      # ================================================
+      - name: Install final launcher icon
+        shell: bash
+        run: |
 
-          cp "JapnishPaints_NO_CROP_icon.png" \
+          cp "JapnishPaints_ICON_FINAL.png" \
              android/app/src/main/res/drawable-nodpi/japnish_logo.png
 
 
-          # ------------------------------------------------
-          # LEGACY LAUNCHER ICONS
-          # ------------------------------------------------
+      # ================================================
+      # LAUNCHER ICONS
+      # SAME ORIGINAL LOGO
+      # ================================================
+      - name: Create launcher icons
+        shell: bash
+        run: |
 
-          cp "JapnishPaints_NO_CROP_icon.png" \
+          cp "JapnishPaints_ICON_FINAL.png" \
              android/app/src/main/res/mipmap-mdpi/ic_launcher.png
 
-          cp "JapnishPaints_NO_CROP_icon.png" \
+          cp "JapnishPaints_ICON_FINAL.png" \
              android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png
 
-          cp "JapnishPaints_NO_CROP_icon.png" \
+
+          cp "JapnishPaints_ICON_FINAL.png" \
              android/app/src/main/res/mipmap-hdpi/ic_launcher.png
 
-          cp "JapnishPaints_NO_CROP_icon.png" \
+          cp "JapnishPaints_ICON_FINAL.png" \
              android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png
 
-          cp "JapnishPaints_NO_CROP_icon.png" \
+
+          cp "JapnishPaints_ICON_FINAL.png" \
              android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
 
-          cp "JapnishPaints_NO_CROP_icon.png" \
+          cp "JapnishPaints_ICON_FINAL.png" \
              android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png
 
-          cp "JapnishPaints_NO_CROP_icon.png" \
+
+          cp "JapnishPaints_ICON_FINAL.png" \
              android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
 
-          cp "JapnishPaints_NO_CROP_icon.png" \
+          cp "JapnishPaints_ICON_FINAL.png" \
              android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png
 
-          cp "JapnishPaints_NO_CROP_icon.png" \
+
+          cp "JapnishPaints_ICON_FINAL.png" \
              android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
 
-          cp "JapnishPaints_NO_CROP_icon.png" \
+          cp "JapnishPaints_ICON_FINAL.png" \
              android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png
 
 
-          # ------------------------------------------------
-          # SETTINGS.GRADLE
-          # ------------------------------------------------
+      # ================================================
+      # SETTINGS.GRADLE
+      # ================================================
+      - name: Create settings.gradle
+        shell: bash
+        run: |
 
           cat > settings.gradle <<'EOF'
           pluginManagement {
@@ -135,9 +152,12 @@ jobs:
           EOF
 
 
-          # ------------------------------------------------
-          # GRADLE PROPERTIES
-          # ------------------------------------------------
+      # ================================================
+      # GRADLE PROPERTIES
+      # ================================================
+      - name: Create gradle.properties
+        shell: bash
+        run: |
 
           cat > gradle.properties <<'EOF'
           android.useAndroidX=true
@@ -146,9 +166,12 @@ jobs:
           EOF
 
 
-          # ------------------------------------------------
-          # ROOT BUILD.GRADLE
-          # ------------------------------------------------
+      # ================================================
+      # ROOT BUILD.GRADLE
+      # ================================================
+      - name: Create root build.gradle
+        shell: bash
+        run: |
 
           cat > build.gradle <<'EOF'
           plugins {
@@ -167,9 +190,12 @@ jobs:
           EOF
 
 
-          # ------------------------------------------------
-          # APP BUILD.GRADLE
-          # ------------------------------------------------
+      # ================================================
+      # APP BUILD.GRADLE
+      # ================================================
+      - name: Create app build.gradle
+        shell: bash
+        run: |
 
           cat > android/app/build.gradle <<'EOF'
           plugins {
@@ -177,55 +203,75 @@ jobs:
           }
 
           android {
+
               namespace 'com.japnishpaints.app'
 
               compileSdk 35
 
               defaultConfig {
+
                   applicationId 'com.japnishpaints.app'
+
                   minSdk 23
+
                   targetSdk 35
 
                   versionCode 70
+
                   versionName '70.0.0'
               }
 
               signingConfigs {
+
                   release {
-                      storeFile file("${System.getenv("GITHUB_WORKSPACE")}/japnishpaints-release-v2.jks")
+
+                      storeFile file(
+                          "${System.getenv("GITHUB_WORKSPACE")}/japnishpaints-release-v2.jks"
+                      )
+
                       storePassword System.getenv("JP_KEYSTORE_PASSWORD")
+
                       keyAlias System.getenv("JP_KEY_ALIAS")
+
                       keyPassword System.getenv("JP_KEY_PASSWORD")
                   }
               }
 
               buildTypes {
+
                   debug {
+
                       minifyEnabled false
                   }
 
                   release {
+
                       minifyEnabled false
+
                       signingConfig signingConfigs.release
                   }
               }
           }
 
           dependencies {
+
               implementation 'androidx.appcompat:appcompat:1.7.0'
+
               implementation 'androidx.webkit:webkit:1.12.1'
           }
           EOF
 
 
-          # ------------------------------------------------
-          # ANDROID MANIFEST
-          # CAMERA PERMISSION
-          # APP ICON
-          # ------------------------------------------------
+      # ================================================
+      # ANDROID MANIFEST
+      # ================================================
+      - name: Create AndroidManifest.xml
+        shell: bash
+        run: |
 
           cat > android/app/src/main/AndroidManifest.xml <<'EOF'
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+          <manifest
+              xmlns:android="http://schemas.android.com/apk/res/android">
 
               <uses-permission
                   android:name="android.permission.INTERNET" />
@@ -233,23 +279,40 @@ jobs:
               <uses-permission
                   android:name="android.permission.CAMERA" />
 
+
               <application
+
                   android:theme="@style/AppTheme"
+
                   android:label="Japnish Paints"
+
                   android:icon="@mipmap/ic_launcher"
+
                   android:roundIcon="@mipmap/ic_launcher_round"
+
                   android:usesCleartextTraffic="false">
 
+
                   <activity
+
                       android:name=".MainActivity"
+
                       android:exported="true">
 
+
                       <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHER" />
+
+                          <action
+                              android:name="android.intent.action.MAIN" />
+
+                          <category
+                              android:name="android.intent.category.LAUNCHER" />
+
                       </intent-filter>
 
+
                   </activity>
+
 
               </application>
 
@@ -257,9 +320,12 @@ jobs:
           EOF
 
 
-          # ------------------------------------------------
-          # APP STYLE
-          # ------------------------------------------------
+      # ================================================
+      # APP THEME
+      # ================================================
+      - name: Create app style
+        shell: bash
+        run: |
 
           cat > android/app/src/main/res/values/styles.xml <<'EOF'
           <resources>
@@ -269,8 +335,14 @@ jobs:
                   parent="android:style/Theme.Material.Light.NoActionBar">
 
                   <item name="android:fontFamily">sans</item>
-                  <item name="android:colorAccent">#1677FF</item>
-                  <item name="android:windowActionModeOverlay">true</item>
+
+                  <item name="android:colorAccent">
+                      #1677FF
+                  </item>
+
+                  <item name="android:windowActionModeOverlay">
+                      true
+                  </item>
 
               </style>
 
@@ -278,11 +350,10 @@ jobs:
           EOF
 
 
-      # --------------------------------------------------
+      # ================================================
       # MAIN ACTIVITY
-      # CAMERA + WEBVIEW
-      # --------------------------------------------------
-
+      # WEBVIEW + CAMERA
+      # ================================================
       - name: Create MainActivity
         shell: bash
         run: |
@@ -300,11 +371,15 @@ jobs:
           import android.webkit.WebView;
           import android.webkit.WebViewClient;
 
+
           public class MainActivity extends Activity {
+
 
               private static final int CAMERA_PERMISSION_REQUEST = 1001;
 
+
               private WebView webView;
+
 
               private PermissionRequest pendingPermissionRequest;
 
@@ -314,52 +389,86 @@ jobs:
 
                   super.onCreate(savedInstanceState);
 
+
                   webView = new WebView(this);
+
 
                   setContentView(webView);
 
-                  WebSettings settings = webView.getSettings();
+
+                  WebSettings settings =
+                          webView.getSettings();
+
 
                   settings.setJavaScriptEnabled(true);
+
                   settings.setDomStorageEnabled(true);
+
                   settings.setDatabaseEnabled(true);
+
                   settings.setMediaPlaybackRequiresUserGesture(false);
+
                   settings.setBuiltInZoomControls(false);
+
                   settings.setDisplayZoomControls(false);
 
-                  webView.setWebViewClient(new WebViewClient());
 
-                  webView.setWebChromeClient(new WebChromeClient() {
+                  webView.setWebViewClient(
+                          new WebViewClient()
+                  );
 
-                      @Override
-                      public void onPermissionRequest(
-                              final PermissionRequest request) {
 
-                          runOnUiThread(() -> {
+                  webView.setWebChromeClient(
+                          new WebChromeClient() {
 
-                              if (request == null) {
-                                  return;
-                              }
 
-                              if (checkSelfPermission(
-                                      Manifest.permission.CAMERA)
-                                      == PackageManager.PERMISSION_GRANTED) {
+                              @Override
+                              public void onPermissionRequest(
+                                      final PermissionRequest request) {
 
-                                  request.grant(
-                                      new String[]{
-                                          PermissionRequest.RESOURCE_VIDEO_CAPTURE
+
+                                  runOnUiThread(() -> {
+
+
+                                      if (request == null) {
+                                          return;
                                       }
-                                  );
 
-                              } else {
 
-                                  pendingPermissionRequest = request;
+                                      if (
+                                          checkSelfPermission(
+                                              Manifest.permission.CAMERA
+                                          )
+                                          ==
+                                          PackageManager.PERMISSION_GRANTED
+                                      ) {
 
-                                  requestCameraPermission();
+
+                                          request.grant(
+                                              new String[] {
+                                                  PermissionRequest
+                                                      .RESOURCE_VIDEO_CAPTURE
+                                              }
+                                          );
+
+
+                                      } else {
+
+
+                                          pendingPermissionRequest =
+                                                  request;
+
+
+                                          requestCameraPermission();
+
+                                      }
+
+                                  });
+
                               }
-                          });
-                      }
-                  });
+
+                          }
+                  );
 
 
                   requestCameraPermission();
@@ -368,103 +477,162 @@ jobs:
                   webView.loadUrl(
                       "https://japnishpaints.store/mobile/index.html"
                   );
+
               }
 
 
               private void requestCameraPermission() {
 
-                  if (checkSelfPermission(
-                          Manifest.permission.CAMERA)
-                          != PackageManager.PERMISSION_GRANTED) {
+
+                  if (
+                      checkSelfPermission(
+                          Manifest.permission.CAMERA
+                      )
+                      !=
+                      PackageManager.PERMISSION_GRANTED
+                  ) {
+
 
                       requestPermissions(
-                          new String[]{
+
+                          new String[] {
                               Manifest.permission.CAMERA
                           },
+
                           CAMERA_PERMISSION_REQUEST
                       );
+
                   }
+
               }
 
 
               @Override
               public void onRequestPermissionsResult(
+
                       int requestCode,
+
                       String[] permissions,
-                      int[] grantResults) {
+
+                      int[] grantResults
+              ) {
+
 
                   super.onRequestPermissionsResult(
+
                       requestCode,
+
                       permissions,
+
                       grantResults
                   );
 
 
-                  if (requestCode == CAMERA_PERMISSION_REQUEST) {
+                  if (
+                      requestCode
+                      ==
+                      CAMERA_PERMISSION_REQUEST
+                  ) {
 
-                      if (grantResults.length > 0
-                              && grantResults[0]
-                              == PackageManager.PERMISSION_GRANTED) {
 
-                          if (pendingPermissionRequest != null) {
+                      if (
+                          grantResults.length > 0
+                          &&
+                          grantResults[0]
+                          ==
+                          PackageManager.PERMISSION_GRANTED
+                      ) {
+
+
+                          if (
+                              pendingPermissionRequest
+                              != null
+                          ) {
+
 
                               pendingPermissionRequest.grant(
-                                  new String[]{
-                                      PermissionRequest.RESOURCE_VIDEO_CAPTURE
+
+                                  new String[] {
+                                      PermissionRequest
+                                          .RESOURCE_VIDEO_CAPTURE
                                   }
                               );
 
-                              pendingPermissionRequest = null;
+
+                              pendingPermissionRequest =
+                                      null;
+
 
                           } else {
 
+
                               webView.reload();
+
                           }
+
 
                       } else {
 
-                          pendingPermissionRequest = null;
+
+                          pendingPermissionRequest =
+                                  null;
+
                       }
+
                   }
+
               }
 
 
               @Override
               public void onBackPressed() {
 
-                  if (webView != null
-                          && webView.canGoBack()) {
+
+                  if (
+                      webView != null
+                      &&
+                      webView.canGoBack()
+                  ) {
+
 
                       webView.goBack();
 
+
                   } else {
 
+
                       super.onBackPressed();
+
                   }
+
               }
+
           }
           EOF
 
 
-      # --------------------------------------------------
+      # ================================================
       # RESTORE SIGNING KEY
-      # --------------------------------------------------
-
+      # ================================================
       - name: Restore signing keystore
         shell: bash
         env:
           JP_KEYSTORE_B64: ${{ secrets.JP_KEYSTORE_B64 }}
           JP_KEYSTORE_PASSWORD: ${{ secrets.JP_KEYSTORE_PASSWORD }}
+
         run: |
 
           KEYSTORE_PATH="$GITHUB_WORKSPACE/japnishpaints-release-v2.jks"
+
 
           printf '%s' "$JP_KEYSTORE_B64" \
             | tr -d '[:space:]' \
             | base64 --decode --ignore-garbage \
             > "$KEYSTORE_PATH"
 
+
           test -s "$KEYSTORE_PATH"
+
 
           keytool -list \
             -keystore "$KEYSTORE_PATH" \
@@ -472,21 +640,20 @@ jobs:
             -alias "japnishnew" \
             > /dev/null
 
-          echo "Keystore restored and validated successfully."
+
+          echo "Keystore restored successfully."
 
 
-      # --------------------------------------------------
-      # SETUP GRADLE
-      # --------------------------------------------------
-
+      # ================================================
+      # GRADLE
+      # ================================================
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
 
-      # --------------------------------------------------
-      # GENERATE GRADLE WRAPPER
-      # --------------------------------------------------
-
+      # ================================================
+      # GRADLE WRAPPER
+      # ================================================
       - name: Generate Gradle wrapper
         run: |
 
@@ -497,24 +664,31 @@ jobs:
             --distribution-type bin
 
 
-      # --------------------------------------------------
-      # BUILD SIGNED RELEASE APK
-      # --------------------------------------------------
-
+      # ================================================
+      # BUILD RELEASE APK
+      # ================================================
       - name: Build signed Release APK
+
         env:
           JP_KEYSTORE_PASSWORD: ${{ secrets.JP_KEYSTORE_PASSWORD }}
           JP_KEY_ALIAS: ${{ secrets.JP_KEY_ALIAS }}
           JP_KEY_PASSWORD: ${{ secrets.JP_KEY_PASSWORD }}
-        run: ./gradlew assembleRelease
+
+        run: |
+
+          ./gradlew assembleRelease
 
 
-      # --------------------------------------------------
-      # UPLOAD SIGNED APK
-      # --------------------------------------------------
-
+      # ================================================
+      # UPLOAD APK
+      # ================================================
       - name: Upload signed APK
+
         uses: actions/upload-artifact@v4
+
         with:
+
           name: JapnishPaints-release-v70
-          path: android/app/build/outputs/apk/release/app-release.apk
+
+          path:
+            android/app/build/outputs/apk/release/app-release.apk
