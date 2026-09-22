@@ -15,27 +15,34 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-
   build:
-
     runs-on: ubuntu-latest
 
     steps:
 
-      # ==================================================
+      # ==========================================
       # CHECKOUT
-      # ==================================================
+      # ==========================================
       - name: Checkout repository
         uses: actions/checkout@v4
 
 
-      # ==================================================
-      # CHECK ICON
-      # ==================================================
+      # ==========================================
+      # JAVA 17
+      # ==========================================
+      - name: Setup Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+
+      # ==========================================
+      # CHECK JAPNISH PAINTS ICON
+      # ==========================================
       - name: Verify Japnish Paints icon
         shell: bash
         run: |
-
           if [ ! -s "JapnishPaints_ICON_FINAL.png" ]; then
             echo "ERROR: JapnishPaints_ICON_FINAL.png not found."
             exit 1
@@ -44,27 +51,14 @@ jobs:
           echo "Japnish Paints icon found."
 
 
-      # ==================================================
-      # JAVA 17
-      # ==================================================
-      - name: Setup Java 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-          cache: gradle
-
-
-      # ==================================================
-      # CREATE ANDROID PROJECT
-      # ==================================================
+      # ==========================================
+      # CREATE ANDROID DIRECTORIES
+      # ==========================================
       - name: Create Android directories
         shell: bash
         run: |
-
           mkdir -p android/app/src/main/java/com/japnishpaints/app
 
-          mkdir -p android/app/src/main/res/drawable
           mkdir -p android/app/src/main/res/drawable-nodpi
 
           mkdir -p android/app/src/main/res/mipmap-mdpi
@@ -76,45 +70,39 @@ jobs:
           mkdir -p android/app/src/main/res/values
 
 
-      # ==================================================
-      # INSTALL APP LOGO
-      # ==================================================
+      # ==========================================
+      # INSTALL JAPNISH PAINTS LOGO
+      # ==========================================
       - name: Install Japnish Paints logo
         shell: bash
         run: |
-
           cp "JapnishPaints_ICON_FINAL.png" \
             android/app/src/main/res/drawable-nodpi/japnish_logo.png
 
 
-      # ==================================================
+      # ==========================================
       # CREATE LAUNCHER ICONS
-      # ==================================================
+      # ==========================================
       - name: Create launcher icons
         shell: bash
         run: |
-
           for density in mdpi hdpi xhdpi xxhdpi xxxhdpi
           do
-
             cp "JapnishPaints_ICON_FINAL.png" \
               "android/app/src/main/res/mipmap-${density}/ic_launcher.png"
 
             cp "JapnishPaints_ICON_FINAL.png" \
               "android/app/src/main/res/mipmap-${density}/ic_launcher_round.png"
-
           done
 
 
-      # ==================================================
+      # ==========================================
       # SETTINGS GRADLE
-      # ==================================================
+      # ==========================================
       - name: Create settings.gradle
         shell: bash
         run: |
-
           cat > settings.gradle <<'EOF'
-
           pluginManagement {
               repositories {
                   google()
@@ -135,128 +123,99 @@ jobs:
           rootProject.name = "JapnishPaints"
 
           include(":app")
-
-          project(":app").projectDir = file("android/app")
-
           EOF
 
 
-      # ==================================================
+      # ==========================================
       # GRADLE PROPERTIES
-      # ==================================================
+      # ==========================================
       - name: Create gradle.properties
         shell: bash
         run: |
-
           cat > gradle.properties <<'EOF'
-
           android.useAndroidX=true
           android.enableJetifier=true
-
           org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
-
           EOF
 
 
-      # ==================================================
+      # ==========================================
       # ROOT BUILD GRADLE
-      # ==================================================
+      # ==========================================
       - name: Create root build.gradle
         shell: bash
         run: |
-
           cat > build.gradle <<'EOF'
-
           plugins {
               id 'com.android.application' version '8.7.3' apply false
           }
-
           EOF
 
 
-      # ==================================================
+      # ==========================================
       # APP BUILD GRADLE
-      # ==================================================
+      # ==========================================
       - name: Create app build.gradle
         shell: bash
         run: |
-
           cat > android/app/build.gradle <<'EOF'
-
           plugins {
               id 'com.android.application'
           }
 
           android {
-
               namespace 'com.japnishpaints.app'
 
               compileSdk 35
 
               defaultConfig {
-
                   applicationId 'com.japnishpaints.app'
 
                   minSdk 23
-
                   targetSdk 35
 
                   versionCode 74
-
                   versionName '74.0.0'
               }
 
               signingConfigs {
-
                   release {
-
                       storeFile file(
                           "${System.getenv("GITHUB_WORKSPACE")}/japnishpaints-release-v2.jks"
                       )
 
                       storePassword System.getenv("JP_KEYSTORE_PASSWORD")
-
                       keyAlias System.getenv("JP_KEY_ALIAS")
-
                       keyPassword System.getenv("JP_KEY_PASSWORD")
                   }
               }
 
               buildTypes {
-
                   debug {
-
                       minifyEnabled false
                   }
 
                   release {
-
                       minifyEnabled false
-
                       signingConfig signingConfigs.release
                   }
               }
           }
 
           dependencies {
-
               implementation 'androidx.appcompat:appcompat:1.7.0'
-
               implementation 'androidx.webkit:webkit:1.12.1'
           }
-
           EOF
 
 
-      # ==================================================
+      # ==========================================
       # ANDROID MANIFEST
-      # ==================================================
+      # ==========================================
       - name: Create AndroidManifest.xml
         shell: bash
         run: |
-
           cat > android/app/src/main/AndroidManifest.xml <<'EOF'
-
           <manifest
               xmlns:android="http://schemas.android.com/apk/res/android">
 
@@ -267,31 +226,22 @@ jobs:
                   android:name="android.permission.CAMERA" />
 
               <application
-
                   android:theme="@style/AppTheme"
-
                   android:label="Japnish Paints"
-
                   android:icon="@mipmap/ic_launcher"
-
                   android:roundIcon="@mipmap/ic_launcher_round"
-
                   android:usesCleartextTraffic="false">
 
                   <activity
-
                       android:name=".MainActivity"
-
                       android:exported="true">
 
                       <intent-filter>
-
                           <action
                               android:name="android.intent.action.MAIN" />
 
                           <category
                               android:name="android.intent.category.LAUNCHER" />
-
                       </intent-filter>
 
                   </activity>
@@ -299,19 +249,16 @@ jobs:
               </application>
 
           </manifest>
-
           EOF
 
 
-      # ==================================================
+      # ==========================================
       # APP THEME
-      # ==================================================
+      # ==========================================
       - name: Create Android app theme
         shell: bash
         run: |
-
           cat > android/app/src/main/res/values/styles.xml <<'EOF'
-
           <resources>
 
               <style
@@ -320,34 +267,23 @@ jobs:
 
                   <item name="android:fontFamily">sans</item>
 
-                  <item name="android:colorAccent">
-                      #1677FF
-                  </item>
+                  <item name="android:colorAccent">#1677FF</item>
 
-                  <item name="android:windowActionModeOverlay">
-                      true
-                  </item>
-
-                  <item name="android:windowLightStatusBar">
-                      true
-                  </item>
+                  <item name="android:windowLightStatusBar">true</item>
 
               </style>
 
           </resources>
-
           EOF
 
 
-      # ==================================================
+      # ==========================================
       # MAIN ACTIVITY
-      # ==================================================
+      # ==========================================
       - name: Create MainActivity
         shell: bash
         run: |
-
           cat > android/app/src/main/java/com/japnishpaints/app/MainActivity.java <<'EOF'
-
           package com.japnishpaints.app;
 
           import android.Manifest;
@@ -370,7 +306,6 @@ jobs:
 
               @Override
               protected void onCreate(Bundle savedInstanceState) {
-
                   super.onCreate(savedInstanceState);
 
                   webView = new WebView(this);
@@ -380,19 +315,12 @@ jobs:
                   WebSettings settings = webView.getSettings();
 
                   settings.setJavaScriptEnabled(true);
-
                   settings.setDomStorageEnabled(true);
-
                   settings.setDatabaseEnabled(true);
-
                   settings.setMediaPlaybackRequiresUserGesture(false);
-
                   settings.setBuiltInZoomControls(false);
-
                   settings.setDisplayZoomControls(false);
-
                   settings.setAllowFileAccess(true);
-
                   settings.setAllowContentAccess(true);
 
                   webView.setWebViewClient(
@@ -433,10 +361,8 @@ jobs:
 
                                       requestCameraPermission();
                                   }
-
                               });
                           }
-
                       }
                   );
 
@@ -454,16 +380,13 @@ jobs:
                       checkSelfPermission(
                           Manifest.permission.CAMERA
                       )
-                      !=
-                      PackageManager.PERMISSION_GRANTED
+                      != PackageManager.PERMISSION_GRANTED
                   ) {
 
                       requestPermissions(
-
                           new String[] {
                               Manifest.permission.CAMERA
                           },
-
                           CAMERA_PERMISSION_REQUEST
                       );
                   }
@@ -472,13 +395,9 @@ jobs:
 
               @Override
               public void onRequestPermissionsResult(
-
                   int requestCode,
-
                   String[] permissions,
-
                   int[] grantResults
-
               ) {
 
                   super.onRequestPermissionsResult(
@@ -507,12 +426,10 @@ jobs:
                           ) {
 
                               pendingPermissionRequest.grant(
-
                                   new String[] {
                                       PermissionRequest
                                           .RESOURCE_VIDEO_CAPTURE
                                   }
-
                               );
 
                               pendingPermissionRequest = null;
@@ -547,24 +464,19 @@ jobs:
                   }
               }
           }
-
           EOF
 
 
-      # ==================================================
+      # ==========================================
       # RESTORE SIGNING KEY
-      # ==================================================
+      # ==========================================
       - name: Restore signing keystore
         shell: bash
-
         env:
-
           JP_KEYSTORE_B64: ${{ secrets.JP_KEYSTORE_B64 }}
-
           JP_KEYSTORE_PASSWORD: ${{ secrets.JP_KEYSTORE_PASSWORD }}
 
         run: |
-
           KEYSTORE_PATH="$GITHUB_WORKSPACE/japnishpaints-release-v2.jks"
 
           if [ -z "$JP_KEYSTORE_B64" ]; then
@@ -591,52 +503,45 @@ jobs:
           echo "Keystore restored successfully."
 
 
-      # ==================================================
+      # ==========================================
       # SETUP GRADLE
-      # ==================================================
+      # ==========================================
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
 
-      # ==================================================
+      # ==========================================
       # GENERATE GRADLE WRAPPER
-      # ==================================================
+      # ==========================================
       - name: Generate Gradle wrapper
         shell: bash
         run: |
-
           gradle wrapper \
             --gradle-version 8.9 \
             --distribution-type bin
 
 
-      # ==================================================
-      # BUILD SIGNED RELEASE APK
-      # ==================================================
+      # ==========================================
+      # BUILD RELEASE APK
+      # ==========================================
       - name: Build signed Release APK
-
         env:
-
           JP_KEYSTORE_PASSWORD: ${{ secrets.JP_KEYSTORE_PASSWORD }}
-
           JP_KEY_ALIAS: ${{ secrets.JP_KEY_ALIAS }}
-
           JP_KEY_PASSWORD: ${{ secrets.JP_KEY_PASSWORD }}
 
         run: |
-
           chmod +x ./gradlew
 
           ./gradlew clean assembleRelease --stacktrace
 
 
-      # ==================================================
+      # ==========================================
       # VERIFY APK
-      # ==================================================
+      # ==========================================
       - name: Verify APK
         shell: bash
         run: |
-
           APK_PATH="android/app/build/outputs/apk/release/app-release.apk"
 
           if [ ! -s "$APK_PATH" ]; then
@@ -649,16 +554,13 @@ jobs:
           echo "Japnish Paints v74 APK generated successfully."
 
 
-      # ==================================================
-      # UPLOAD APK ARTIFACT
-      # ==================================================
+      # ==========================================
+      # UPLOAD APK
+      # ==========================================
       - name: Upload Japnish Paints v74 APK
         uses: actions/upload-artifact@v4
 
         with:
-
           name: JapnishPaints-release-v74
-
           path: android/app/build/outputs/apk/release/app-release.apk
-
           if-no-files-found: error
