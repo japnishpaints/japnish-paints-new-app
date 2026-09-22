@@ -1,0 +1,12 @@
+JAPNISH PAINTS — MERGED V74 PROJECT
+
+This package combines:
+- Japanese Premium Glass mobile HTML dashboard (v74)
+- Existing GitHub APK build workflow
+- Existing app icon/update files
+- Existing API configuration/endpoints
+
+Core UI files are from the v74 dashboard package.
+The GitHub workflow and deployment/update support files are retained from the existing project.
+
+No backend/database files are included or deleted by this package.

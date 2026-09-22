@@ -19,8 +19,8 @@ function applyBranding(b){
   x.secondary_color=x.secondary_color||'#1677FF';
   x.announcement=x.announcement||'';
   x.splash_background_url=brandImageUrl(x.splash_background_url||x.splash_background||'');
-  x.login_background_url=brandImageUrl(x.login_background_url||x.login_background||'');
-  x.dashboard_background_url=brandImageUrl(x.dashboard_background_url||x.dashboard_background||'');
+  x.login_background_url=brandImageUrl(x.login_background_url||x.login_background||'')||'assets/jp-japanese-glass-bg.jpg';
+  x.dashboard_background_url=brandImageUrl(x.dashboard_background_url||x.dashboard_background||'')||'assets/jp-japanese-clean-scenic-portrait.jpg';
   x.app_logo_url=brandImageUrl(x.app_logo_url||x.app_logo||x.logo_url);
   x.splash_logo_url=brandImageUrl(x.splash_logo_url||x.splash_logo||x.app_logo_url);
   x.login_logo_url=brandImageUrl(x.login_logo_url||x.login_logo||x.app_logo_url);
@@ -51,7 +51,7 @@ function applyBranding(b){
   document.documentElement.style.setProperty('--jp-splash-logo-x',x.splash_logo_x+'px'); document.documentElement.style.setProperty('--jp-splash-logo-y',x.splash_logo_y+'px');
   document.documentElement.style.setProperty('--jp-login-logo-x',x.login_logo_x+'px'); document.documentElement.style.setProperty('--jp-login-logo-y',x.login_logo_y+'px');
   document.documentElement.style.setProperty('--jp-dashboard-logo-x',x.dashboard_logo_x+'px'); document.documentElement.style.setProperty('--jp-dashboard-logo-y',x.dashboard_logo_y+'px');
-  document.documentElement.style.setProperty('--jp-bg-overlay',String(Number(x.background_overlay||12)/100));
+  document.documentElement.style.setProperty('--jp-bg-overlay',String(Number(x.background_overlay ?? 4)/100));
   let st=document.getElementById('jpDynamicBrandingStyle');
   if(!st){st=document.createElement('style');st.id='jpDynamicBrandingStyle';document.head.appendChild(st)}
   st.textContent=`
@@ -61,13 +61,13 @@ function applyBranding(b){
     .app .modern-nav button.active{color:var(--jp-secondary) !important;}
     .app .announcement-bar{background:linear-gradient(135deg,var(--jp-primary),var(--jp-secondary));}
     #splash{background-image:var(--jp-splash-bg,none)!important;background-size:cover!important;background-position:center!important;background-repeat:no-repeat!important;}
-    .app.login-app{background-image:var(--jp-login-bg,none)!important;background-size:cover!important;background-position:center!important;background-attachment:fixed!important;}
-    .app.home-app{background-image:var(--jp-dashboard-bg,none)!important;background-size:cover!important;background-position:center!important;background-attachment:fixed!important;}
+    .app.login-app{background-image:var(--jp-login-bg,none)!important;background-size:cover!important;background-position:center!important;background-attachment:scroll!important;}
+    .app.home-app{background-image:var(--jp-dashboard-bg,none)!important;background-size:cover!important;background-position:center!important;background-attachment:scroll!important;}
     .jp-splash-logo{width:var(--jp-splash-logo-size,150px)!important;height:var(--jp-splash-logo-size,150px)!important;object-fit:contain!important;border-radius:var(--jp-splash-logo-radius,50%)!important;transform:translate(var(--jp-splash-logo-x,0px),var(--jp-splash-logo-y,0px))!important;}
     .login-logo-box img{width:var(--jp-login-logo-size,92px)!important;height:var(--jp-login-logo-size,92px)!important;object-fit:contain!important;border-radius:var(--jp-login-logo-radius,50%)!important;transform:translate(var(--jp-login-logo-x,0px),var(--jp-login-logo-y,0px))!important;}
     .home-logo img,.brand-logo-shell img,.jp-menu-brand img{width:var(--jp-dashboard-logo-size,52px)!important;height:var(--jp-dashboard-logo-size,52px)!important;object-fit:contain!important;border-radius:var(--jp-dashboard-logo-radius,50%)!important;transform:translate(var(--jp-dashboard-logo-x,0px),var(--jp-dashboard-logo-y,0px))!important;}
     .jp-splash-inner,.login-page-shell{position:relative;z-index:1;}
-    .app.login-app:before,.app.home-app:before{content:"";position:fixed;inset:0;background:rgba(255,255,255,var(--jp-bg-overlay,.12));pointer-events:none;z-index:0;}
+    .app.login-app:before,.app.home-app:before{content:"";position:fixed;inset:0;background:rgba(255,255,255,var(--jp-bg-overlay,0));pointer-events:none;z-index:0;}
     .jp-redeem-card{padding-bottom:120px!important;}
     .jp-scan-actions{display:flex;gap:8px;flex-wrap:wrap;}
     .jp-code-row{display:flex;gap:8px;align-items:stretch;margin-top:8px;position:relative;z-index:5;}
@@ -291,7 +291,6 @@ function loginView(msg=""){
       </section>
       <main class="login-card">
         <div class="login-card-title"><span>👤</span><div><h2>Login to Continue</h2><p>${esc(b.welcome_text||("Access your account with "+company))}</p></div></div>
-        <div class="role-pills"><button class="selected login-single-role-btn" type="button" onclick="showLogin()">Login</button></div>
         <div id="loginBox">${msg?`<div class="notice err">${esc(msg)}</div>`:""}<div class="muted login-select-note">Select your role above.</div></div>
         <div class="login-trust"><span>✓ Trusted Quality</span><span>◒ Safe & Eco Friendly</span><span>♧ Stronger Communities</span></div>
       </main>
@@ -299,6 +298,7 @@ function loginView(msg=""){
     </div>
   </div>`;
   loadLoginSliders();
+  setTimeout(function(){ if(document.getElementById("loginBox")) showLogin(); }, 0);
 }
 function showLogin(){
   state.role="";
@@ -362,7 +362,10 @@ localStorage.setItem("jp_token",state.token);
 let p=await api(C.ENDPOINTS.permissions); state.permissions=p.functions||{};
 let detected=String((p.user&&p.user.role)||d.role||"").toLowerCase();
 state.role=detected; localStorage.setItem("jp_role",detected); render("home");
-}catch(e){loginView(e.message)}}
+}catch(e){
+  const box=document.getElementById("loginBox");
+  if(box){let n=box.querySelector(".notice.err");if(!n){n=document.createElement("div");n.className="notice err";box.prepend(n)}n.textContent=e?.message||"Login failed";}
+}}
 
 function header(){
   const role=names[state.role]||"Partner";
@@ -458,15 +461,28 @@ async function home(){
   if(rewardImg && /^\/mobile\/gift-image\.php\?reward_id=/.test(String(rewardImg))){rewardImg += '&v=40'}
   let rewardDeadline=next?.deadline||next?.deadline_at||"";
   let rewardTime=rewardDeadline?formatRemaining(rewardDeadline):"";
+  window.__jpDashboardPoints=Number(points||0);
+  rewardSliderItems=rewards;
+  rewardSliderIndex=Math.max(0,rewards.indexOf(next));
   const action=(icon,label,sub,fn,cl='')=>`<button class="paint-action ${cl}" onclick="${fn}"><span class="paint-icon">${icon}</span><b>${label}</b>${sub?`<small>${sub}</small>`:''}</button>`;
   let slides=[];try{const sd=await dataApi('?action=public_sliders');slides=(sd.slides||[]).map(sl=>({...sl,image_url:sl.id?('/mobile/slider-image.php?id='+encodeURIComponent(sl.id)):sl.image_url}));}catch(e){}
   if(!slides.length)slides=[];
   document.querySelector('.content').innerHTML=`
     <section class="intl-home-head jp-home-flat-head">
-      <div class="home-head-left"><button class="home-menu jp-menu-btn" onclick="openMenu()" aria-label="Menu">${jpIcon('menu')}</button><div class="home-logo home-logo-single"><img src="${esc((state.branding||{}).dashboard_logo_url||(state.branding||{}).app_logo_url||"japnish-logo.png")}" alt="${esc((state.branding||{}).company_name||"Japnish Paints")}"></div></div>
+      <div class="home-head-left"><button class="home-menu jp-menu-btn" onclick="openMenu()" aria-label="Menu">${jpIcon('menu')}</button><div class="home-logo home-logo-single" aria-label="Japnish Paints"><img src="japnish-dashboard-logo.png" alt="Japnish Paints"></div></div>
       <div class="home-head-right"><button class="home-bell jp-flat-icon" onclick="notifications()" aria-label="Notifications">${jpIcon('bell')}<i></i></button><button class="home-user jp-avatar-button" onclick="render('profile')" aria-label="Profile">${profileAvatar('sm')}</button><span>Hello,<br><b>${esc(role)}</b></span><button class="home-down" onclick="openMenu()" aria-label="Open menu">⌄</button></div>
     </section>
     <section class="home-admin-slider home-admin-slider-top" id="homeAdminSlider"><div class="home-slider-track">${slides.map((s,i)=>`<div class="home-slide"><img src="${esc(s.image_url)}" data-candidates='${esc(JSON.stringify(s.image_candidates||[]))}' data-idx="0" alt="Japnish Paints promotional banner" loading="${i?'lazy':'eager'}" onerror="const a=JSON.parse(this.dataset.candidates||'[]');let n=Number(this.dataset.idx||0)+1;this.dataset.idx=n;if(n<a.length)this.src=a[n];else{this.style.display='none';this.parentElement.classList.add('slider-image-missing')}"></div>`).join('')}</div><button class="hs-prev" onclick="homeSliderPrev()" aria-label="Previous banner">‹</button><button class="hs-next" onclick="homeSliderNext()" aria-label="Next banner">›</button></section>
+    <section class="next-reward-card" id="nextRewardCard">
+      <div class="next-copy"><div class="next-label">🎁 &nbsp; Next Reward</div><h2 id="nextRewardName">${esc(rewardName)}</h2><p id="nextRewardDescription">Gift at ${esc(target||0)} POINTS cumulative qualifying points.</p>
+        <div class="progress"><i id="nextRewardProgress" style="width:${target?Math.min(100,(achieved/target)*100):0}%"></i></div>
+        <div class="target-line">Target <b id="nextRewardTarget">${esc(target)}</b> POINTS &nbsp; • &nbsp; Achieved <b id="nextRewardAchieved">${esc(achieved)}</b> POINTS</div>
+        <div class="remaining-line"><span id="nextRewardRemaining">🎯 ${esc(remaining)} POINTS remaining</span><span id="nextRewardTime">⌛ ${esc(rewardTime||'—')}</span></div>
+      </div>
+      <button type="button" class="reward-slider-arrow reward-slider-prev" onclick="rewardSliderPrev()" aria-label="Previous reward">‹</button>
+      <div class="next-reward-image" id="nextRewardImage">${rewardImg?`<img src="${esc(rewardImg)}" alt="${esc(rewardName)}" onerror="this.style.display='none';this.parentElement.classList.add('image-missing')">`:'🎁'}<small id="nextRewardLevel">LEVEL ${esc(next?.level_no||1)}</small></div>
+      <button type="button" class="reward-slider-arrow reward-slider-next" onclick="rewardSliderNext()" aria-label="Next reward">›</button>
+    </section>
     <section class="home-welcome-card">
       <div><span class="home-welcome-kicker">Welcome back</span><h2>Hello ${esc(role)}</h2><p>Let’s paint a brighter tomorrow together.</p></div>
       <span class="home-active-pill">✓ Active ${esc(role)}</span>
@@ -494,32 +510,87 @@ async function home(){
         ${action('⬇️','Withdraw','Request payment',"render('wallet')")}
         ${redeem?action('▦','Scan QR','Scan & redeem',"render('redeem')",'scan-action'):''}
         ${redeem?action('🎁','Redeem','Coupon reward',"render('redeem')",'redeem-action'):''}
-        ${action('📄','Withdraw History','All requests',"historyView('withdrawals')")}
-        ${action('📚','Transaction History','Wallet activity',"historyView('transactions')")}
-        ${redeem?action('🧾','Redeem History','All redeemed',"historyView('redeems')"):''}
         ${action('🏦','Add Bank','Bank details',"bankView()")}
         ${action('🔒','Change Password','Security',"passwordView()")}
-        ${action('🎁','Gift Network','Rewards scheme',"giftNetwork()")}
+        ${action('📚','Transaction History','Wallet activity',"historyView('transactions')")}
+        ${redeem?action('🧾','Redeem History','All redeemed',"historyView('redeems')"):''}
         ${action('📊','My Gift Report','Gift points',"giftReport()")}
         ${action('🪙','POINT History','Live points',"pointHistory()")}
         ${action('🔔','Notifications','Admin updates',"notifications()")}
-        ${action('🚪','Logout','Sign out securely',"logout()")}
+        ${action('🏆','LeaderBoard','Top performers',"giftReport()")}
+        ${action('%','Offers','Special rewards',"giftNetwork()")}
+        ${action('▤','Products','Explore range',"productsView()")}
+        ${action('♧','Support','Get help',"supportView()")}
       </div>
-    </section>
-    <section class="next-reward-card">
-      <div class="next-copy"><div class="next-label">🎁 &nbsp; Next Reward</div><h2>${esc(rewardName)}</h2><p>Gift at ${esc(target||0)} POINTS cumulative qualifying points.</p>
-        <div class="progress"><i style="width:${target?Math.min(100,(achieved/target)*100):0}%"></i></div>
-        <div class="target-line">Target <b>${esc(target)}</b> POINTS &nbsp; • &nbsp; Achieved <b>${esc(achieved)}</b> POINTS</div>
-        <div class="remaining-line"><span>🎯 ${esc(remaining)} POINTS remaining</span><span>⌛ ${esc(rewardTime||'—')}</span></div>
-      </div>
-      <div class="next-reward-image">${rewardImg?`<img src="${esc(rewardImg)}" alt="${esc(rewardName)}" onerror="this.style.display='none';this.parentElement.classList.add('image-missing')">`:'🎁'}<small>LEVEL ${esc(next?.level_no||1)}</small></div><button class="reward-arrow" onclick="giftNetwork()">›</button>
-    </section>
-    <section class="home-feature-grid">
-      <button onclick="giftReport()"><span class="home-3d-icon trophy">🏆</span><b>LeaderBoard</b><small>Top Performers</small></button><button onclick="giftNetwork()"><span class="home-3d-icon offer">%</span><b>Offers</b><small>Special Rewards</small></button><button onclick="productsView()"><span class="home-3d-icon product">▤</span><b>Products</b><small>Explore Range</small></button><button onclick="supportView()"><span class="home-3d-icon support">♧</span><b>Support</b><small>Get Help</small></button>
     </section>
     <section class="home-paint-banner"><div><h2>${esc((state.branding||{}).company_name||"Japnish Paints")}</h2><p>${esc((state.branding||{}).welcome_text||"Paint a Better Tomorrow")}</p></div><button onclick="productsView()">Our Products →</button></section>
 `;
   initHomeSlider(slides.length);
+  initRewardSlider(rewards,rewardSliderIndex);
+}
+let rewardSliderIndex=0;
+let rewardSliderItems=[];
+let rewardSliderTimer=null;
+function initRewardSlider(items,index){
+  rewardSliderItems=Array.isArray(items)?items:[];
+  rewardSliderIndex=Math.max(0,Math.min(Number(index)||0,rewardSliderItems.length-1));
+  clearInterval(rewardSliderTimer);
+  updateRewardSlider();
+  if(rewardSliderItems.length>1){
+    rewardSliderTimer=setInterval(rewardSliderNext,5000);
+  }
+}
+function rewardSliderNext(){
+  if(!rewardSliderItems.length)return;
+  rewardSliderIndex=(rewardSliderIndex+1)%rewardSliderItems.length;
+  updateRewardSlider();
+  resetRewardSliderTimer();
+}
+function rewardSliderPrev(){
+  if(!rewardSliderItems.length)return;
+  rewardSliderIndex=(rewardSliderIndex-1+rewardSliderItems.length)%rewardSliderItems.length;
+  updateRewardSlider();
+  resetRewardSliderTimer();
+}
+function resetRewardSliderTimer(){
+  clearInterval(rewardSliderTimer);
+  if(rewardSliderItems.length>1)rewardSliderTimer=setInterval(rewardSliderNext,5000);
+}
+function updateRewardSlider(){
+  const r=rewardSliderItems[rewardSliderIndex];
+  if(!r)return;
+  const pts=Number(window.__jpDashboardPoints||0);
+  const target=Number(r.target||r.target_quantity||0);
+  const achieved=Math.min(pts,target||pts);
+  const remaining=Math.max(0,target-achieved);
+  const name=r.gift_name||'Reward unavailable';
+  const img=r.gift_image_url||r.gift_image||'';
+  const deadline=r.deadline||r.deadline_at||'';
+  const imgEl=document.getElementById('nextRewardImage');
+  const nameEl=document.getElementById('nextRewardName');
+  const descEl=document.getElementById('nextRewardDescription');
+  const progEl=document.getElementById('nextRewardProgress');
+  const targetEl=document.getElementById('nextRewardTarget');
+  const achievedEl=document.getElementById('nextRewardAchieved');
+  const remainingEl=document.getElementById('nextRewardRemaining');
+  const timeEl=document.getElementById('nextRewardTime');
+  const levelEl=document.getElementById('nextRewardLevel');
+  if(nameEl)nameEl.textContent=name;
+  if(descEl)descEl.textContent=`Gift at ${target||0} POINTS cumulative qualifying points.`;
+  if(progEl)progEl.style.width=(target?Math.min(100,(achieved/target)*100):0)+'%';
+  if(targetEl)targetEl.textContent=target;
+  if(achievedEl)achievedEl.textContent=achieved;
+  if(remainingEl)remainingEl.textContent=`🎯 ${remaining} POINTS remaining`;
+  if(timeEl)timeEl.textContent=`⌛ ${formatRemaining(deadline)||'—'}`;
+  if(levelEl)levelEl.textContent=`LEVEL ${r.level_no||1}`;
+  if(imgEl){
+    imgEl.classList.remove('image-missing');
+    if(img){
+      imgEl.innerHTML=`<img src="${esc(img)}" alt="${esc(name)}" onerror="this.style.display='none';this.parentElement.classList.add('image-missing')"><small id="nextRewardLevel">LEVEL ${esc(r.level_no||1)}</small>`;
+    }else{
+      imgEl.innerHTML=`🎁<small id="nextRewardLevel">LEVEL ${esc(r.level_no||1)}</small>`;
+    }
+  }
 }
 function formatRemaining(deadline){const ms=new Date(deadline).getTime()-Date.now();if(!isFinite(ms)||ms<=0)return"Expired";let h=Math.floor(ms/3600000),d=Math.floor(h/24);h%=24;return `${d}d ${h}h remaining`}
 let homeSliderIndex=0,homeSliderTimer=null;
@@ -595,6 +666,17 @@ async function profile(){
       <div><span>Gift POINTS</span><b>${points}</b></div>
       <div><span>Role</span><b>${esc(roleLabel)}</b></div>
       <div><span>Status</span><b class="profile-status">● Active</b></div>
+    </div>
+    <div class="jp-profile-menu">
+      <button onclick="render('profile')">${jpIcon('user')}<span>My Profile</span><b>›</b></button>
+      <button onclick="bankView()">${jpIcon('bank')}<span>Add / Update Bank Details</span><b>›</b></button>
+      <button onclick="passwordView()">${jpIcon('lock')}<span>Change Password</span><b>›</b></button>
+      <button onclick="historyView('transactions')">${jpIcon('history')}<span>Transaction History</span><b>›</b></button>
+      <button onclick="historyView('redeems')">${jpIcon('gift')}<span>Redeem History</span><b>›</b></button>
+      <button onclick="giftReport()">${jpIcon('points')}<span>My Gift Report</span><b>›</b></button>
+      <button onclick="pointHistory()">${jpIcon('chart')}<span>POINT History</span><b>›</b></button>
+      <button onclick="notifications()">${jpIcon('bell')}<span>Notifications</span><b class="jp-profile-toggle">ON</b></button>
+      <button class="jp-profile-logout" onclick="logout()">${jpIcon('logout')}<span>Logout</span><b>›</b></button>
     </div>
   </section>`;
 }
@@ -913,9 +995,9 @@ function logout(){
   localStorage.removeItem("jp_role");
   const savedBranding=state.branding||{};
   state={role:"",token:"",user:null,permissions:null,screen:"home",scanner:null,cameraStream:null,cameraTimer:null,branding:savedBranding,pendingRedeemCode:""};
-  // Logout returns directly to the branded Welcome/Login page (page 2).
-  // Do not open the old separate Login page (page 3).
-  welcomeView();
+  // Logout returns directly to the single Japanese Glass Login page.
+  // The separate Welcome/Login page has been removed from the guest flow.
+  loginView();
 }
 (async function boot(){
   const publicBrand=await loadPublicBranding(); 
@@ -927,10 +1009,11 @@ function logout(){
   showSplash(publicBrand);
   if(state.token){
     state.role=localStorage.getItem("jp_role")||"";
-    if(state.role){try{const d=await dataApi("?action=branding");state.branding=d.branding||publicBrand}catch(e){state.branding=publicBrand} await render("home");}else welcomeView();
+    if(state.role){try{const d=await dataApi("?action=branding");state.branding=d.branding||publicBrand}catch(e){state.branding=publicBrand} await render("home");}else loginView();
     hideSplash(); return;
   }
-  // Guest flow: splash first, then branded Home/Welcome for 5 seconds, then Login.
-  setTimeout(()=>{hideSplash(); welcomeView();},1200);
+  // Guest flow: splash first, then the single Japanese Glass Login page.
+  // The separate Welcome page is removed from the flow.
+  setTimeout(()=>{hideSplash(); loginView();},1200);
 })();
 window.openMenu=openMenu;window.closeMenu=closeMenu;window.handleProfilePhoto=handleProfilePhoto;window.removeProfilePhoto=removeProfilePhoto;window.showLogin=showLogin;window.doLogin=doLogin;window.render=render;window.jpSlideNext=jpSlideNext;window.jpSlidePrev=jpSlidePrev;window.couponEntry=couponEntry;window.redeem=redeem;window.startRedeem=startRedeem;window.submitRedeem=submitRedeem;window.stopScan=stopScan;window.notifications=notifications;window.logout=logout;window.historyView=historyView;window.giftReport=giftReport;window.pointHistory=pointHistory;window.giftNetwork=giftNetwork;window.claimGift=claimGift;window.bankView=bankView;window.passwordView=passwordView;window.submitWithdraw=submitWithdraw;window.saveBank=saveBank;window.savePassword=savePassword;window.productsView=productsView;

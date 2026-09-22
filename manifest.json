@@ -1,0 +1,12 @@
+{
+  "name": "Japnish Paints",
+  "short_name": "Japnish Paints",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#eaf4ff",
+  "theme_color": "#0b4d91",
+  "description": "Japnish Paints Partner App",
+  "icons": [
+    {"src":"japnish-dashboard-logo.png","sizes":"512x512","type":"image/png","purpose":"any"}
+  ]
+}
