@@ -123,6 +123,8 @@ jobs:
           rootProject.name = "JapnishPaints"
 
           include(":app")
+
+          project(":app").projectDir = file("android/app")
           EOF
 
 
@@ -522,7 +524,7 @@ jobs:
 
 
       # ==========================================
-      # BUILD RELEASE APK
+      # BUILD SIGNED RELEASE APK
       # ==========================================
       - name: Build signed Release APK
         env:
@@ -555,7 +557,7 @@ jobs:
 
 
       # ==========================================
-      # UPLOAD APK
+      # UPLOAD APK ARTIFACT
       # ==========================================
       - name: Upload Japnish Paints v74 APK
         uses: actions/upload-artifact@v4
