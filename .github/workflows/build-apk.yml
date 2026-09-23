@@ -68,6 +68,7 @@ jobs:
           mkdir -p android/app/src/main/res/mipmap-xxxhdpi
 
           mkdir -p android/app/src/main/res/values
+          mkdir -p android/app/src/main/res/xml
 
 
       # ==========================================
@@ -240,12 +241,25 @@ jobs:
               <uses-permission
                   android:name="android.permission.CAMERA" />
 
+              <uses-permission
+                  android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
               <application
                   android:theme="@style/AppTheme"
                   android:label="Japnish Paints"
                   android:icon="@mipmap/ic_launcher"
                   android:roundIcon="@mipmap/ic_launcher_round"
                   android:usesCleartextTraffic="false">
+
+                  <provider
+                      android:name="androidx.core.content.FileProvider"
+                      android:authorities="com.japnishpaints.app.fileprovider"
+                      android:exported="false"
+                      android:grantUriPermissions="true">
+                      <meta-data
+                          android:name="android.support.FILE_PROVIDER_PATHS"
+                          android:resource="@xml/file_paths" />
+                  </provider>
 
                   <activity
                       android:name=".MainActivity"
@@ -293,9 +307,25 @@ jobs:
 
 
       # ==========================================
+      # FILE PROVIDER PATHS
+      # ==========================================
+      - name: Create FileProvider paths
+        shell: bash
+        run: |
+          cat > android/app/src/main/res/xml/file_paths.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <paths xmlns:android="http://schemas.android.com/apk/res/android">
+              <external-files-path
+                  name="external_files"
+                  path="." />
+          </paths>
+          EOF
+
+
+      # ==========================================
       # MAIN ACTIVITY
       # ==========================================
-      - name: Create MainActivity
+      - name: Create MainActivity and APK update bridge
         shell: bash
         run: |
           cat > android/app/src/main/java/com/japnishpaints/app/MainActivity.java <<'EOF'
@@ -303,8 +333,18 @@ jobs:
 
           import android.Manifest;
           import android.app.Activity;
+          import android.app.DownloadManager;
+          import android.content.BroadcastReceiver;
+          import android.content.Context;
+          import android.content.Intent;
+          import android.content.IntentFilter;
           import android.content.pm.PackageManager;
+          import android.net.Uri;
+          import android.os.Build;
           import android.os.Bundle;
+          import android.os.Environment;
+          import android.provider.Settings;
+          import android.webkit.JavascriptInterface;
           import android.webkit.PermissionRequest;
           import android.webkit.WebChromeClient;
           import android.webkit.WebSettings;
@@ -314,21 +354,40 @@ jobs:
           public class MainActivity extends Activity {
 
               private static final int CAMERA_PERMISSION_REQUEST = 1001;
+              private static final int INSTALL_PERMISSION_REQUEST = 1002;
 
               private WebView webView;
-
               private PermissionRequest pendingPermissionRequest;
+              private DownloadManager downloadManager;
+              private long updateDownloadId = -1L;
+              private String pendingApkUrl = "";
+
+              private final BroadcastReceiver downloadReceiver = new BroadcastReceiver() {
+                  @Override
+                  public void onReceive(Context context, Intent intent) {
+                      if (!DownloadManager.ACTION_DOWNLOAD_COMPLETE.equals(intent.getAction())) {
+                          return;
+                      }
+
+                      long id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1L);
+                      if (id != updateDownloadId) {
+                          return;
+                      }
+
+                      installDownloadedApk(id);
+                  }
+              };
 
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
 
-                  webView = new WebView(this);
+                  downloadManager = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
 
+                  webView = new WebView(this);
                   setContentView(webView);
 
                   WebSettings settings = webView.getSettings();
-
                   settings.setJavaScriptEnabled(true);
                   settings.setDomStorageEnabled(true);
                   settings.setDatabaseEnabled(true);
@@ -338,144 +397,221 @@ jobs:
                   settings.setAllowFileAccess(true);
                   settings.setAllowContentAccess(true);
 
-                  webView.setWebViewClient(
-                      new WebViewClient()
-                  );
+                  webView.setWebViewClient(new WebViewClient());
 
-                  webView.setWebChromeClient(
-                      new WebChromeClient() {
+                  webView.addJavascriptInterface(new AndroidBridge(), "Android");
 
-                          @Override
-                          public void onPermissionRequest(
-                              final PermissionRequest request) {
+                  webView.setWebChromeClient(new WebChromeClient() {
+                      @Override
+                      public void onPermissionRequest(final PermissionRequest request) {
+                          runOnUiThread(() -> {
+                              if (request == null) return;
 
-                              runOnUiThread(() -> {
-
-                                  if (request == null) {
-                                      return;
-                                  }
-
-                                  if (
-                                      checkSelfPermission(
-                                          Manifest.permission.CAMERA
-                                      )
-                                      ==
-                                      PackageManager.PERMISSION_GRANTED
-                                  ) {
-
-                                      request.grant(
-                                          new String[] {
-                                              PermissionRequest
-                                                  .RESOURCE_VIDEO_CAPTURE
-                                          }
-                                      );
-
-                                  } else {
-
-                                      pendingPermissionRequest = request;
-
-                                      requestCameraPermission();
-                                  }
-                              });
-                          }
+                              if (checkSelfPermission(Manifest.permission.CAMERA)
+                                      == PackageManager.PERMISSION_GRANTED) {
+                                  request.grant(new String[] {
+                                      PermissionRequest.RESOURCE_VIDEO_CAPTURE
+                                  });
+                              } else {
+                                  pendingPermissionRequest = request;
+                                  requestCameraPermission();
+                              }
+                          });
                       }
-                  );
+                  });
 
+                  registerUpdateReceiver();
                   requestCameraPermission();
 
-                  webView.loadUrl(
-                      "https://japnishpaints.store/mobile/index.html"
-                  );
+                  webView.loadUrl("https://japnishpaints.store/mobile/index.html");
               }
 
+              private void registerUpdateReceiver() {
+                  IntentFilter filter = new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
+                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                      registerReceiver(downloadReceiver, filter, Context.RECEIVER_EXPORTED);
+                  } else {
+                      registerReceiver(downloadReceiver, filter);
+                  }
+              }
 
               private void requestCameraPermission() {
-
-                  if (
-                      checkSelfPermission(
-                          Manifest.permission.CAMERA
-                      )
-                      != PackageManager.PERMISSION_GRANTED
-                  ) {
-
+                  if (checkSelfPermission(Manifest.permission.CAMERA)
+                          != PackageManager.PERMISSION_GRANTED) {
                       requestPermissions(
-                          new String[] {
-                              Manifest.permission.CAMERA
-                          },
+                          new String[] { Manifest.permission.CAMERA },
                           CAMERA_PERMISSION_REQUEST
                       );
                   }
               }
 
+              private void requestInstallPermission() {
+                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+                          && !getPackageManager().canRequestPackageInstalls()) {
+                      try {
+                          Intent settingsIntent = new Intent(
+                              Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                              Uri.parse("package:" + getPackageName())
+                          );
+                          startActivityForResult(settingsIntent, INSTALL_PERMISSION_REQUEST);
+                          return;
+                      } catch (Exception ignored) {
+                      }
+                  }
+
+                  if (updateDownloadId != -1L) {
+                      installDownloadedApk(updateDownloadId);
+                  }
+              }
+
+              @JavascriptInterface
+              public void downloadAndInstallApk(final String url) {
+                  runOnUiThread(() -> startApkDownload(url));
+              }
+
+              @JavascriptInterface
+              public void openExternal(final String url) {
+                  downloadAndInstallApk(url);
+              }
+
+              private void startApkDownload(String url) {
+                  if (url == null || url.trim().isEmpty()) {
+                      return;
+                  }
+
+                  try {
+                      Uri uri = Uri.parse(url);
+
+                      DownloadManager.Request request = new DownloadManager.Request(uri);
+                      request.setTitle("Japnish Paints update");
+                      request.setDescription("Downloading the latest Japnish Paints APK");
+                      request.setMimeType("application/vnd.android.package-archive");
+                      request.setNotificationVisibility(
+                          DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED
+                      );
+                      request.setAllowedOverMetered(true);
+                      request.setAllowedOverRoaming(true);
+                      request.setDestinationInExternalFilesDir(
+                          this,
+                          Environment.DIRECTORY_DOWNLOADS,
+                          "JapnishPaints-update.apk"
+                      );
+
+                      updateDownloadId = downloadManager.enqueue(request);
+                      pendingApkUrl = url;
+                  } catch (Exception e) {
+                      try {
+                          Intent browser = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                          startActivity(browser);
+                      } catch (Exception ignored) {
+                      }
+                  }
+              }
+
+              private void installDownloadedApk(long downloadId) {
+                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+                          && !getPackageManager().canRequestPackageInstalls()) {
+                      requestInstallPermission();
+                      return;
+                  }
+
+                  try {
+                      Uri apkUri = downloadManager.getUriForDownloadedFile(downloadId);
+                      if (apkUri == null) {
+                          return;
+                      }
+
+                      Intent install = new Intent(Intent.ACTION_VIEW);
+                      install.setDataAndType(
+                          apkUri,
+                          "application/vnd.android.package-archive"
+                      );
+                      install.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                      install.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                      install.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                      startActivity(install);
+                  } catch (Exception e) {
+                      try {
+                          Intent browser = new Intent(Intent.ACTION_VIEW, Uri.parse(pendingApkUrl));
+                          startActivity(browser);
+                      } catch (Exception ignored) {
+                      }
+                  }
+              }
+
+              @Override
+              protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+                  super.onActivityResult(requestCode, resultCode, data);
+
+                  if (requestCode == INSTALL_PERMISSION_REQUEST) {
+                      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O
+                              || getPackageManager().canRequestPackageInstalls()) {
+                          if (updateDownloadId != -1L) {
+                              installDownloadedApk(updateDownloadId);
+                          }
+                      }
+                  }
+              }
 
               @Override
               public void onRequestPermissionsResult(
-                  int requestCode,
-                  String[] permissions,
-                  int[] grantResults
-              ) {
+                      int requestCode,
+                      String[] permissions,
+                      int[] grantResults) {
 
-                  super.onRequestPermissionsResult(
-                      requestCode,
-                      permissions,
-                      grantResults
-                  );
+                  super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
-                  if (
-                      requestCode
-                      ==
-                      CAMERA_PERMISSION_REQUEST
-                  ) {
+                  if (requestCode == CAMERA_PERMISSION_REQUEST) {
+                      if (grantResults.length > 0
+                              && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 
-                      if (
-                          grantResults.length > 0
-                          &&
-                          grantResults[0]
-                          ==
-                          PackageManager.PERMISSION_GRANTED
-                      ) {
-
-                          if (
-                              pendingPermissionRequest
-                              != null
-                          ) {
-
-                              pendingPermissionRequest.grant(
-                                  new String[] {
-                                      PermissionRequest
-                                          .RESOURCE_VIDEO_CAPTURE
-                                  }
-                              );
-
+                          if (pendingPermissionRequest != null) {
+                              pendingPermissionRequest.grant(new String[] {
+                                  PermissionRequest.RESOURCE_VIDEO_CAPTURE
+                              });
                               pendingPermissionRequest = null;
-
                           } else {
-
                               webView.reload();
                           }
-
                       } else {
-
                           pendingPermissionRequest = null;
                       }
                   }
               }
 
+              @Override
+              protected void onDestroy() {
+                  try {
+                      unregisterReceiver(downloadReceiver);
+                  } catch (Exception ignored) {
+                  }
+
+                  if (webView != null) {
+                      webView.removeJavascriptInterface("Android");
+                      webView.destroy();
+                  }
+
+                  super.onDestroy();
+              }
 
               @Override
               public void onBackPressed() {
-
-                  if (
-                      webView != null
-                      &&
-                      webView.canGoBack()
-                  ) {
-
+                  if (webView != null && webView.canGoBack()) {
                       webView.goBack();
-
                   } else {
-
                       super.onBackPressed();
+                  }
+              }
+
+              private class AndroidBridge {
+                  @JavascriptInterface
+                  public void downloadAndInstallApk(String url) {
+                      MainActivity.this.downloadAndInstallApk(url);
+                  }
+
+                  @JavascriptInterface
+                  public void openExternal(String url) {
+                      MainActivity.this.openExternal(url);
                   }
               }
           }
