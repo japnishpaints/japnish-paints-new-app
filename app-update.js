@@ -1,22 +1,169 @@
 (function () {
-"use strict";
-const C=window.JP_CONFIG||{}, CURRENT=String(C.APP_VERSION||"0.0.0");
-const VERSION_URL=C.UPDATE_VERSION_URL||"/mobile/app-version.php";
-const APK_URL=C.APK_DOWNLOAD_URL||"";
-function parts(v){return String(v||"0").replace(/^v/i,"").split(".").map(x=>parseInt(x,10)||0)}
-function newer(a,b){a=parts(a);b=parts(b);for(let i=0;i<Math.max(a.length,b.length);i++){if((a[i]||0)>(b[i]||0))return true;if((a[i]||0)<(b[i]||0))return false}return false}
-function apk(d){return String((d&&(d.apk_url||d.download_url||d.apk||d.url))||APK_URL||"").trim()}
-function openApk(url){if(!url)return;try{if(/Android/i.test(navigator.userAgent)){const x=url.replace(/^https?:\/\//i,"");location.href="intent://"+x+"#Intent;scheme=https;action=android.intent.action.VIEW;type=application/vnd.android.package-archive;end";return}}catch(e){}window.open(url,"_blank","noopener,noreferrer")}
-function show(d){
- if(document.getElementById("jpUpdateBox"))return;
- const v=String((d&&(d.version||d.app_version))||"");
- const n=String((d&&(d.notes||d.release_notes))||"A new version is available.");
- const u=apk(d), box=document.createElement("div"); box.id="jpUpdateBox";
- box.innerHTML='<div style="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:grid;place-items:center;padding:20px"><div style="width:min(420px,100%);background:#fff;border-radius:22px;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.3);font-family:system-ui"><div style="font-size:11px;font-weight:800;letter-spacing:1px;color:#1677FF">JAPNISH PAINTS</div><h2 style="margin:8px 0 6px;color:#10233f">New update available</h2><div style="font-size:13px;color:#667085;margin-bottom:14px">Version '+v+' is ready.</div><div style="font-size:12px;line-height:1.5;color:#667085;background:#f5f7fa;border-radius:12px;padding:10px;margin-bottom:16px">'+n.replace(/[<>&"]/g,m=>({"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;"}[m]))+'</div><button id="jpUpdateNow" style="width:100%;height:46px;border:0;border-radius:14px;background:linear-gradient(135deg,#06245C,#1677FF);color:#fff;font-weight:800">Update Now</button><button id="jpUpdateLater" style="width:100%;height:42px;border:0;background:transparent;color:#667085;font-weight:700">Later</button></div></div>';
- document.body.appendChild(box);
- document.getElementById("jpUpdateNow").onclick=()=>openApk(u);
- document.getElementById("jpUpdateLater").onclick=()=>box.remove();
-}
-async function check(){try{const s=VERSION_URL.indexOf("?")>=0?"&":"?";const r=await fetch(VERSION_URL+s+"t="+Date.now(),{cache:"no-store",headers:{"Accept":"application/json"}});if(!r.ok)return;const d=await r.json(),v=String((d&&(d.version||d.app_version))||"").trim();if(v&&newer(v,CURRENT)&&(d.force===true||d.force_update===true||apk(d)))show(d)}catch(e){}}
-setTimeout(check,1800);
+  "use strict";
+
+  const C = window.JP_CONFIG || {};
+  const VERSION_URL = C.UPDATE_VERSION_URL ||
+    "https://japnishpaints.store/mobile/app-version.php";
+  const APK_URL = C.APK_DOWNLOAD_URL ||
+    "https://japnishpaints.store/mobile/app/JapnishPaints.apk";
+  const CURRENT = String(C.APP_VERSION || "0.0.0");
+
+  function clean(v) {
+    return String(v || "").trim().replace(/^v/i, "");
+  }
+
+  function semver(v) {
+    return clean(v).split(".")
+      .map(x => {
+        const n = parseInt(x, 10);
+        return Number.isFinite(n) ? n : 0;
+      })
+      .concat([0, 0, 0])
+      .slice(0, 3);
+  }
+
+  function newer(a, b) {
+    const x = semver(a), y = semver(b);
+    for (let i = 0; i < 3; i++) {
+      if (x[i] > y[i]) return true;
+      if (x[i] < y[i]) return false;
+    }
+    return false;
+  }
+
+  function apkUrl() {
+    return APK_URL +
+      (APK_URL.indexOf("?") >= 0 ? "&" : "?") +
+      "download=" + Date.now();
+  }
+
+  function downloadApk() {
+    const url = apkUrl();
+
+    // 1) Native Android bridge, if the APK wrapper provides it.
+    try {
+      if (window.Android) {
+        if (typeof window.Android.downloadAndInstallApk === "function") {
+          window.Android.downloadAndInstallApk(url);
+          return true;
+        }
+
+        if (typeof window.Android.openExternal === "function") {
+          window.Android.openExternal(url);
+          return true;
+        }
+      }
+    } catch (e) {}
+
+    // 2) Capacitor Browser, when available.
+    try {
+      if (window.Capacitor &&
+          window.Capacitor.Plugins &&
+          window.Capacitor.Plugins.Browser &&
+          typeof window.Capacitor.Plugins.Browser.open === "function") {
+        window.Capacitor.Plugins.Browser.open({ url: url });
+        return true;
+      }
+    } catch (e) {}
+
+    // 3) Force a real browser/download navigation.
+    try {
+      const a = document.createElement("a");
+      a.href = url;
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.download = "JapnishPaints.apk";
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => a.remove(), 1500);
+      return true;
+    } catch (e) {}
+
+    // 4) Final fallback.
+    try {
+      window.location.assign(url);
+      return true;
+    } catch (e) {}
+
+    return false;
+  }
+
+  function openUpdate() {
+    const ok = downloadApk();
+
+    if (!ok) {
+      window.alert(
+        "APK download could not be started. Please open the APK download link manually."
+      );
+      return;
+    }
+
+    // Browser/webview downloads cannot silently install an APK.
+    // The native Android bridge can perform the install when available.
+    setTimeout(() => {
+      try {
+        if (!window.Android ||
+            typeof window.Android.downloadAndInstallApk !== "function") {
+          window.alert(
+            "APK download started. After the download finishes, open JapnishPaints.apk from Downloads to install the update."
+          );
+        }
+      } catch (e) {}
+    }, 1800);
+  }
+
+  function checkUpdate(showNoUpdate) {
+    fetch(
+      VERSION_URL +
+      (VERSION_URL.indexOf("?") >= 0 ? "&" : "?") +
+      "t=" + Date.now(),
+      {
+        cache: "no-store",
+        credentials: "omit",
+        headers: { "Cache-Control": "no-cache" }
+      }
+    )
+    .then(r => {
+      if (!r.ok) throw new Error("version request failed");
+      return r.json();
+    })
+    .then(data => {
+      const latest = clean(
+        data.version ||
+        data.app_version ||
+        data.APP_VERSION ||
+        (data.data && (data.data.version || data.data.app_version)) ||
+        ""
+      );
+
+      if (!latest) return;
+
+      if (newer(latest, CURRENT)) {
+        const msg =
+          "New Japnish Paints app update is available (v" +
+          latest +
+          ").\n\nOpen download to install the latest APK?";
+
+        if (window.confirm(msg)) {
+          openUpdate();
+        }
+      } else if (showNoUpdate) {
+        window.alert("Your app is already up to date.");
+      }
+    })
+    .catch(() => {
+      if (showNoUpdate) {
+        window.alert("Update server is not reachable right now.");
+      }
+    });
+  }
+
+  window.JP_CHECK_APP_UPDATE = function () {
+    checkUpdate(true);
+  };
+
+  window.JP_OPEN_APK_UPDATE = openUpdate;
+
+  setTimeout(() => checkUpdate(false), 2500);
 })();
