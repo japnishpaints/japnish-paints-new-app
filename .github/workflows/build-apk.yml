@@ -702,16 +702,16 @@ jobs:
 
           ls -lh "$APK_PATH"
 
-          echo "Japnish Paints v74 APK generated successfully."
+          echo "Japnish Paints v75 APK generated successfully."
 
 
       # ==========================================
       # UPLOAD APK ARTIFACT
       # ==========================================
-      - name: Upload Japnish Paints v74 APK
+      - name: Upload Japnish Paints v75 APK
         uses: actions/upload-artifact@v4
 
         with:
-          name: JapnishPaints-release-v74
+          name: JapnishPaints-release-v75
           path: android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
