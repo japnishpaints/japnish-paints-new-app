@@ -1,0 +1,10 @@
+Japnish Paints v75 release version fix
+
+This update sets:
+- config.js APP_VERSION = 75.0.0
+- app-version.php version = 75.0.0
+- Android versionCode = 75
+- Android versionName = 75.0.0
+- GitHub Actions artifact name = JapnishPaints-release-v75
+
+Build the workflow after committing these files. Do not replace the live APK until the v75 APK is installed and update flow is tested.
