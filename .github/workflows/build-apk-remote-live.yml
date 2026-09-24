@@ -1,4 +1,4 @@
-name: Japnish Paints Remote Live APK
+name: Japnish Paints Live APK
 
 on:
   workflow_dispatch:
@@ -29,7 +29,6 @@ jobs:
         shell: bash
         run: |
           mkdir -p android/app/src/main/java/com/japnishpaints/live
-          mkdir -p android/app/src/main/res/drawable-nodpi
           mkdir -p android/app/src/main/res/mipmap-mdpi
           mkdir -p android/app/src/main/res/mipmap-hdpi
           mkdir -p android/app/src/main/res/mipmap-xhdpi
@@ -37,17 +36,11 @@ jobs:
           mkdir -p android/app/src/main/res/mipmap-xxxhdpi
           mkdir -p android/app/src/main/res/values
 
-          curl -fL --retry 3 \
-            "https://japnishpaints.store/mobile/japnish-round-logo.png" \
-            -o android/app/src/main/res/drawable-nodpi/japnish_logo.png
-
-          test -s android/app/src/main/res/drawable-nodpi/japnish_logo.png
+          test -s app-logo/ic_launcher.png
 
           for d in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
-            cp android/app/src/main/res/drawable-nodpi/japnish_logo.png \
-              "android/app/src/main/res/mipmap-$d/ic_launcher.png"
-            cp android/app/src/main/res/drawable-nodpi/japnish_logo.png \
-              "android/app/src/main/res/mipmap-$d/ic_launcher_round.png"
+            cp app-logo/ic_launcher.png android/app/src/main/res/mipmap-$d/ic_launcher.png
+            cp app-logo/ic_launcher.png android/app/src/main/res/mipmap-$d/ic_launcher_round.png
           done
 
           cat > settings.gradle <<'EOF'
@@ -58,7 +51,6 @@ jobs:
                   gradlePluginPortal()
               }
           }
-
           dependencyResolutionManagement {
               repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
               repositories {
@@ -66,7 +58,6 @@ jobs:
                   mavenCentral()
               }
           }
-
           rootProject.name = "JapnishPaintsLive"
           include(":app")
           project(":app").projectDir = file("android/app")
@@ -127,7 +118,7 @@ jobs:
 
               <application
                   android:theme="@style/AppTheme"
-                  android:label="Japnish Paints Live"
+                  android:label="Japnish Paints"
                   android:icon="@mipmap/ic_launcher"
                   android:roundIcon="@mipmap/ic_launcher_round"
                   android:usesCleartextTraffic="false"
@@ -137,7 +128,6 @@ jobs:
                       android:name=".MainActivity"
                       android:exported="true"
                       android:screenOrientation="portrait">
-
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
                           <category android:name="android.intent.category.LAUNCHER" />
@@ -248,6 +238,8 @@ jobs:
                       }
                   });
 
+                  webView.clearCache(true);
+                  webView.clearHistory();
                   webView.loadUrl(LIVE_URL);
               }
 
@@ -300,8 +292,7 @@ jobs:
               private void openExternal(Uri uri) {
                   try {
                       startActivity(new Intent(Intent.ACTION_VIEW, uri));
-                  } catch (Exception ignored) {
-                  }
+                  } catch (Exception ignored) {}
               }
 
               @Override
@@ -342,9 +333,7 @@ jobs:
 
               @Override
               protected void onDestroy() {
-                  if (webView != null) {
-                      webView.destroy();
-                  }
+                  if (webView != null) webView.destroy();
                   super.onDestroy();
               }
           }
@@ -372,8 +361,6 @@ jobs:
             -alias "$JP_KEY_ALIAS" \
             > /dev/null
 
-          echo "Keystore validated."
-
       - name: Build signed Release APK
         env:
           JP_KEYSTORE_PASSWORD: ${{ secrets.JP_KEYSTORE_PASSWORD }}
@@ -382,16 +369,17 @@ jobs:
         run: |
           gradle --no-daemon clean assembleRelease
 
-      - name: Prepare APK
+      - name: Verify APK
         shell: bash
         run: |
-          mkdir -p release
-          cp android/app/build/outputs/apk/release/app-release.apk \
-            release/JapnishPaints-Live-NewApp.apk
+          APK="android/app/build/outputs/apk/release/app-release.apk"
+          test -s "$APK"
+          echo "APK generated:"
+          ls -lh "$APK"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: JapnishPaints-Live-NewApp
-          path: release/JapnishPaints-Live-NewApp.apk
+          name: JapnishPaints-Live-NewLogo
+          path: android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
