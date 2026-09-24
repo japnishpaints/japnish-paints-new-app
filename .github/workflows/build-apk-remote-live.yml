@@ -25,7 +25,7 @@ jobs:
         shell: bash
         run: |
 
-          mkdir -p android/app/src/main/java/com/japnishpaints/app
+          mkdir -p android/app/src/main/java/com/japnishpaints/live
           mkdir -p android/app/src/main/res/drawable-nodpi
           mkdir -p android/app/src/main/res/mipmap-mdpi
           mkdir -p android/app/src/main/res/mipmap-hdpi
@@ -96,7 +96,7 @@ jobs:
               }
           }
 
-          rootProject.name = "JapnishPaints"
+          rootProject.name = "JapnishPaintsLive"
           include(":app")
           project(":app").projectDir = file("android/app")
           EOF
@@ -123,15 +123,15 @@ jobs:
           }
 
           android {
-              namespace 'com.japnishpaints.app'
+              namespace 'com.japnishpaints.live'
               compileSdk 35
 
               defaultConfig {
-                  applicationId 'com.japnishpaints.app'
+                  applicationId 'com.japnishpaints.live'
                   minSdk 23
                   targetSdk 35
-                  versionCode 82
-                  versionName '82.0.0'
+                  versionCode 1
+                  versionName '1.0.0'
               }
 
               signingConfigs {
@@ -170,7 +170,7 @@ jobs:
 
               <application
                   android:theme="@style/AppTheme"
-                  android:label="Japnish Paints"
+                  android:label="Japnish Paints Live"
                   android:icon="@mipmap/ic_launcher"
                   android:roundIcon="@mipmap/ic_launcher_round"
                   android:usesCleartextTraffic="false"
@@ -264,8 +264,8 @@ jobs:
         shell: bash
         run: |
 
-          cat > android/app/src/main/java/com/japnishpaints/app/MainActivity.java <<'EOF'
-          package com.japnishpaints.app;
+          cat > android/app/src/main/java/com/japnishpaints/live/MainActivity.java <<'EOF'
+          package com.japnishpaints.live;
 
           import android.Manifest;
           import android.app.Activity;
@@ -423,14 +423,11 @@ jobs:
                       return;
                   }
 
-                  // Ignore the first resume because onCreate already loaded it.
                   if (firstResume) {
                       firstResume = false;
                       return;
                   }
 
-                  // App returns from background:
-                  // clear WebView cache and load the latest live website.
                   webView.clearCache(true);
                   webView.reload();
               }
@@ -586,7 +583,7 @@ jobs:
         shell: bash
         run: |
           gradle wrapper \
-            --gradle-version 9.7.1 \
+            --gradle-version 8.14.3 \
             --distribution-type bin
 
       # --------------------------------------------
@@ -600,4 +597,11 @@ jobs:
           JP_KEY_PASSWORD: ${{ secrets.JP_KEY_PASSWORD }}
         run: |
           chmod +x gradlew
-      
+          ./gradlew assembleRelease
+
+      # --------------------------------------------
+      # RENAME APK
+      # --------------------------------------------
+
+      - name: Rename APK
+        she
